@@ -6,6 +6,7 @@ and correctness of PM data through extraction and comparison.
 """
 import csv  # Import CSV module for file operations
 from src.utils.terminal_colors import TerminalColors
+from typing import Dict, List, Iterator
 
 
 class ValidPmValidation:
@@ -17,7 +18,7 @@ class ValidPmValidation:
     """
 
     @staticmethod
-    def import_pm_table(reader_aller_file):
+    def import_pm_table(reader_aller_file: Iterator[List[str]]) -> None:
         """
         Import files and validate PM content through comparison.
         
@@ -36,18 +37,18 @@ class ValidPmValidation:
             # Create a reader that filters out null bytes (\0) which can cause parsing issues
             reader = csv.reader((row.replace("\0", "") for row in file))
             # Read the header row
-            header = next(reader)
+            header: List[str] = next(reader)
             print(TerminalColors.info(f"Header: {TerminalColors.highlight_value(','.join(header))}"))
             
             print(TerminalColors.processing("Filtering and preparing reference data..."))
             with open("data/filtered_csv.csv", "w", encoding="utf8") as new:
                 new_csv = csv.writer(new, delimiter=",", lineterminator="\n")
-                ok_count = 0
+                ok_count: int = 0
                 for pm_row in reader:
                     if pm_row[70] == "ACTIF" or pm_row[70] == "INACTIF":
-                        ok_count = ok_count + 1
+                        ok_count += 1
                         new_csv.writerow(pm_row)
-                        print(f"\r{TerminalColors.processing(f'Filtered file size: {TerminalColors.highlight_value(ok_count)} lines.')}", end="")
+                        print(f"\r{TerminalColors.processing(f'Filtered file size: {TerminalColors.highlight_value(str(ok_count))} lines.')}", end="")
                 print(TerminalColors.success("\nFiltering complete."))
                 
         with open("data/filtered_csv.csv", encoding="utf8") as filtered_file:
@@ -55,15 +56,15 @@ class ValidPmValidation:
             filtered_csv_reader = csv.reader(filtered_file)
             
             # Initialize counters and dictionaries for tracking matches
-            matches_count = 0          # Count of matches found
-            non_matches_count = 0      # Count of non-matches
-            pm_count = 0               # Count of PM records in aller file
-            row_count_filtered_csv = 0 # Count of rows in filtered CSV
+            matches_count: int = 0          # Count of matches found
+            non_matches_count: int = 0      # Count of non-matches
+            pm_count: int = 0               # Count of PM records in aller file
+            row_count_filtered_csv: int = 0 # Count of rows in filtered CSV
             
             # Dictionaries to store data for quick lookup
-            aller_dict = {}                    # Dictionary of aller rows by ID
-            filtered_dict = {}                 # Dictionary of filtered rows by ID
-            aller_dict_for_inverted_check = {} # Copy for the inverted check
+            aller_dict: Dict[str, List[str]] = {}                    # Dictionary of aller rows by ID
+            filtered_dict: Dict[str, List[str]] = {}                 # Dictionary of filtered rows by ID
+            aller_dict_for_inverted_check: Dict[str, List[str]] = {} # Copy for the inverted check
             
             # First pass: Process aller file data
             print(TerminalColors.processing("Reading PM records from input file..."))
@@ -72,7 +73,7 @@ class ValidPmValidation:
                 if aller_row[0] == "PM":
                     pm_count += 1
                     # Display running count of PM records found
-                    print(f"\r{TerminalColors.processing(f'PM count: {TerminalColors.highlight_value(pm_count)}')}", end="")
+                    print(f"\r{TerminalColors.processing(f'PM count: {TerminalColors.highlight_value(str(pm_count))}')}", end="")
                     # Store the row in dictionaries using the ID (second column) as key
                     aller_dict[aller_row[1]] = aller_row
                     aller_dict_for_inverted_check[aller_row[1]] = aller_row
@@ -92,9 +93,9 @@ class ValidPmValidation:
                 
                 # Create status message showing progress
                 status_message = (
-                    f"\r{TerminalColors.processing(f'Matches: {TerminalColors.highlight_value(matches_count)} of {row_count_filtered_csv} rows. ')}  "
-                    f"{TerminalColors.warning(f'Not found: {non_matches_count} rows.')}  "
-                    f"{TerminalColors.info(f'Remaining: {len(aller_dict)}')}"
+                    f"\r{TerminalColors.processing(f'Matches: {TerminalColors.highlight_value(str(matches_count))} of {str(row_count_filtered_csv)} rows. ')}  "
+                    f"{TerminalColors.warning(f'Not found: {str(non_matches_count)} rows.')}  "
+                    f"{TerminalColors.info(f'Remaining: {str(len(filtered_dict))}')}"
                 )
                 print(status_message, end="\t")
                 
@@ -134,9 +135,9 @@ class ValidPmValidation:
                 
                 # Create status message showing progress for inverted check
                 inverted_status_message = (
-                    f"\r{TerminalColors.processing(f'Matches: {TerminalColors.highlight_value(inverted_matches_count)} of {row_count_aller_csv} rows. ')}  "
-                    f"{TerminalColors.warning(f'Not found: {inverted_non_matches_count} rows.')}  "
-                    f"{TerminalColors.info(f'Remaining: {len(filtered_dict)}')}"
+                    f"\r{TerminalColors.processing(f'Matches: {TerminalColors.highlight_value(str(inverted_matches_count))} of {str(row_count_aller_csv)} rows. ')}  "
+                    f"{TerminalColors.warning(f'Not found: {str(inverted_non_matches_count)} rows.')}  "
+                    f"{TerminalColors.info(f'Remaining: {str(len(aller_dict_for_inverted_check))}')}"
                 )
                 print(inverted_status_message, end="\t")
                 
@@ -157,5 +158,5 @@ class ValidPmValidation:
                     
             # Print final validation summary
             print("\n" + TerminalColors.info(f"Validation Summary:"))
-            print(TerminalColors.success(f"Forward matches: {matches_count}/{row_count_filtered_csv} ({(matches_count/row_count_filtered_csv*100 if row_count_filtered_csv else 0):.1f}%)"))
-            print(TerminalColors.success(f"Reverse matches: {inverted_matches_count}/{row_count_aller_csv} ({(inverted_matches_count/row_count_aller_csv*100 if row_count_aller_csv else 0):.1f}%)"))
+            print(TerminalColors.success(f"Forward matches: {str(matches_count)}/{str(row_count_filtered_csv)} ({(matches_count/row_count_filtered_csv*100 if row_count_filtered_csv else 0):.1f}%)"))
+            print(TerminalColors.success(f"Reverse matches: {str(inverted_matches_count)}/{str(row_count_aller_csv)} ({(inverted_matches_count/row_count_aller_csv*100 if row_count_aller_csv else 0):.1f}%)"))
