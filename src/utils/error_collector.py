@@ -8,6 +8,14 @@ from collections import defaultdict
 import os
 from datetime import datetime
 import json
+from typing import Dict, List, Optional, Union, DefaultDict
+
+
+# Define type aliases to make the nested structure clearer
+ErrorInfo = Dict[str, Optional[Union[str, int]]]
+FieldErrors = DefaultDict[str, List[ErrorInfo]]
+TypeErrors = DefaultDict[str, FieldErrors]
+SectionErrors = DefaultDict[str, TypeErrors]
 
 
 class ErrorCollector:
@@ -21,11 +29,15 @@ class ErrorCollector:
     def __init__(self):
         """Initialize the error collector with empty collections."""
         # Main storage structure - nested defaultdicts
-        self.errors = defaultdict(lambda: defaultdict(lambda: defaultdict(list)))
-        self.error_count = 0
-        self.has_errors = False
+        self.errors: SectionErrors = defaultdict(
+            lambda: defaultdict(
+                lambda: defaultdict(list)
+            )
+        )
+        self.error_count: int = 0
+        self.has_errors: bool = False
     
-    def add_error(self, section, error_type, field, message, row=None):
+    def add_error(self, section: str, error_type: str, field: str, message: str, row: Optional[int] = None) -> None:
         """
         Add an error to the collection.
         
@@ -36,7 +48,7 @@ class ErrorCollector:
             message: Detailed error message
             row: Optional row number for content errors
         """
-        error_info = {
+        error_info: ErrorInfo = {
             'message': message,
             'row': row
         }
@@ -45,34 +57,37 @@ class ErrorCollector:
         self.error_count += 1
         self.has_errors = True
     
-    def get_error_count(self):
+    def get_error_count(self) -> int:
         """Return the total number of errors collected."""
         return self.error_count
     
-    def get_summary(self):
+    def get_summary(self) -> Dict[str, Union[int, Dict[str, Dict[str, Union[int, Dict[str, int]]]]]]:
         """Generate a summary of errors by category."""
-        summary = {
+        summary: Dict[str, Union[int, Dict[str, Dict[str, Union[int, Dict[str, int]]]]]] = {
             'total_errors': self.error_count,
             'sections': {}
         }
         
         for section, type_errors in self.errors.items():
-            section_count = sum(len(field_errors) 
+            section_count = sum(len(errors) 
                              for error_type in type_errors.values() 
-                             for field_errors in error_type.values())
+                             for _, errors in error_type.items())
             
-            summary['sections'][section] = {
-                'count': section_count,
-                'types': {}
-            }
+            if isinstance(summary['sections'], dict):
+                summary['sections'][section] = {
+                    'count': section_count,
+                    'types': {}
+                }
             
-            for error_type, field_errors in type_errors.items():
-                type_count = sum(len(errors) for errors in field_errors.values())
-                summary['sections'][section]['types'][error_type] = type_count
+                for error_type, field_errors in type_errors.items():
+                    type_count = sum(len(errors) for _, errors in field_errors.items())
+                    types_dict = summary['sections'][section].get('types')
+                    if isinstance(types_dict, dict):
+                        types_dict[error_type] = type_count
         
         return summary
     
-    def print_terminal_report(self):
+    def print_terminal_report(self) -> None:
         """Print a formatted error report to the terminal."""
         if not self.has_errors:
             print("No validation errors found!")
@@ -83,24 +98,23 @@ class ErrorCollector:
         for section, type_errors in self.errors.items():
             section_count = sum(len(errors) 
                              for error_type in type_errors.values() 
-                             for field, errors in error_type.items()
-                             for _ in errors)
+                             for _, errors in error_type.items())
             
             print(f"\n== {section.upper()} ({section_count} errors) ==")
             
             for error_type, field_errors in type_errors.items():
-                type_count = sum(len(errors) for errors in field_errors.values())
+                type_count = sum(len(errors) for _, errors in field_errors.items())
                 print(f"\n-- {error_type} ({type_count} errors) --")
                 
-                for field, errors in field_errors.items():
-                    print(f"\n{field} ({len(errors)} errors):")
+                for field_name, errors in field_errors.items():
+                    print(f"\n{field_name} ({len(errors)} errors):")
                     
                     # Group errors by message to avoid repetition
-                    grouped_errors = defaultdict(list)
+                    grouped_errors: DefaultDict[str, List[int]] = defaultdict(list)
                     for error in errors:
-                        key = error['message']
+                        key = str(error['message'])
                         if error['row'] is not None:
-                            grouped_errors[key].append(error['row'])
+                            grouped_errors[key].append(int(error['row']))
                         else:
                             grouped_errors[key] = []
                     
@@ -115,7 +129,7 @@ class ErrorCollector:
                         else:
                             print(f"  - {message}")
     
-    def generate_html_report(self, filepath=None):
+    def generate_html_report(self, filepath: Optional[str] = None) -> str:
         """
         Generate an HTML report of the errors.
         
@@ -132,7 +146,7 @@ class ErrorCollector:
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
             filepath = os.path.join(os.getcwd(), f"validation_report_{timestamp}.html")
         
-        html = []
+        html: List[str] = []
         
         # HTML header and style
         html.append("""<!DOCTYPE html>
@@ -232,12 +246,25 @@ class ErrorCollector:
             html.append(f'<p class="summary-item"><strong>Total Errors:</strong> {self.error_count}</p>')
             
             summary = self.get_summary()
-            for section, section_data in summary['sections'].items():
-                html.append(f'<p class="summary-item"><strong>{section.upper()}:</strong> {section_data["count"]} errors</p>')
-                html.append('<ul>')
-                for error_type, count in section_data['types'].items():
-                    html.append(f'<li>{error_type}: {count} errors</li>')
-                html.append('</ul>')
+            
+            # Add explicit typing and careful handling of dictionary access
+            if isinstance(summary['sections'], dict):
+                sections_dict = summary['sections']
+                
+                for section_name, section_data in sections_dict.items():
+                    if 'count' in section_data:
+                        # Safe access to section count
+                        section_count = section_data.get('count', 0)
+                        html.append(f'<p class="summary-item"><strong>{section_name.upper()}:</strong> {section_count} errors</p>')
+                        html.append('<ul>')
+                        
+                        # Safe access to types dictionary
+                        if 'types' in section_data:
+                            types_dict = section_data['types']
+                            if isinstance(types_dict, dict):
+                                for error_type, count in types_dict.items():
+                                    html.append(f'<li>{error_type}: {count} errors</li>')
+                        html.append('</ul>')
         
         html.append('</div>')  # Close summary div
         
@@ -246,25 +273,24 @@ class ErrorCollector:
             for section, type_errors in self.errors.items():
                 section_count = sum(len(errors) 
                                 for error_type in type_errors.values() 
-                                for field, errors in error_type.items()
-                                for _ in errors)
+                                for _, errors in error_type.items())
                 
                 html.append(f'<h2>{section.upper()} ({section_count} errors)</h2>')
                 
                 for error_type, field_errors in type_errors.items():
-                    type_count = sum(len(errors) for errors in field_errors.values())
+                    type_count = sum(len(errors) for _, errors in field_errors.items())
                     html.append(f'<button class="collapsible">{error_type} ({type_count} errors)</button>')
                     html.append('<div class="content">')
                     
-                    for field, errors in field_errors.items():
-                        html.append(f'<h4>{field} ({len(errors)} errors):</h4>')
+                    for field_name, errors in field_errors.items():
+                        html.append(f'<h4>{field_name} ({len(errors)} errors):</h4>')
                         
                         # Group errors by message to avoid repetition
-                        grouped_errors = defaultdict(list)
+                        grouped_errors: DefaultDict[str, List[int]] = defaultdict(list)
                         for error in errors:
-                            key = error['message']
+                            key = str(error['message'])
                             if error['row'] is not None:
-                                grouped_errors[key].append(error['row'])
+                                grouped_errors[key].append(int(error['row']))
                             else:
                                 grouped_errors[key] = []
                         
@@ -310,7 +336,7 @@ class ErrorCollector:
         
         return filepath
     
-    def export_json(self, filepath=None):
+    def export_json(self, filepath: Optional[str] = None) -> str:
         """
         Export errors to a JSON file.
         
@@ -328,7 +354,7 @@ class ErrorCollector:
             filepath = os.path.join(os.getcwd(), f"validation_errors_{timestamp}.json")
         
         # Convert defaultdict to regular dict for JSON serialization
-        errors_dict = {}
+        errors_dict: Dict[str, Dict[str, Dict[str, List[ErrorInfo]]]] = {}
         for section, type_errors in self.errors.items():
             errors_dict[section] = {}
             for error_type, field_errors in type_errors.items():
@@ -337,7 +363,7 @@ class ErrorCollector:
                     errors_dict[section][error_type][field] = errors
         
         # Create a JSON object with metadata
-        export_data = {
+        export_data: Dict[str, Union[str, int, Dict[str, Union[int, Dict[str, Dict[str, Union[int, Dict[str, int]]]]]], Dict[str, Dict[str, Dict[str, List[ErrorInfo]]]]]] = {
             'timestamp': datetime.now().isoformat(),
             'total_errors': self.error_count,
             'summary': self.get_summary(),
@@ -346,6 +372,6 @@ class ErrorCollector:
         
         # Write to file
         with open(filepath, 'w', encoding='utf-8') as f:
-            json.dump(export_data, f, indent=2)
+            json.dump(export_data, f, indent=2, default=str)
         
         return filepath

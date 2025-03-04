@@ -39,7 +39,7 @@ class TerminalColors:
     BG_WHITE = "\033[47m"
     
     @staticmethod
-    def section_header(text):
+    def section_header(text: str) -> str:
         """
         Format text as a section header with high visibility.
         
@@ -52,7 +52,7 @@ class TerminalColors:
         return f"{TerminalColors.BG_BLUE}{TerminalColors.FG_WHITE}{TerminalColors.BOLD} {text} {TerminalColors.RESET}"
     
     @staticmethod
-    def section_end():
+    def section_end() -> str:
         """
         Format text to mark the end of a section.
         
@@ -62,7 +62,7 @@ class TerminalColors:
         return f"{TerminalColors.BG_BLUE}{TerminalColors.FG_WHITE}{'─' * 60}{TerminalColors.RESET}"
     
     @staticmethod
-    def success(text):
+    def success(text: str) -> str:
         """
         Format text to indicate success.
         
@@ -75,7 +75,7 @@ class TerminalColors:
         return f"{TerminalColors.FG_GREEN}✓ {text}{TerminalColors.RESET}"
     
     @staticmethod
-    def error(text):
+    def error(text: str) -> str:
         """
         Format text to indicate error.
         
@@ -88,7 +88,7 @@ class TerminalColors:
         return f"{TerminalColors.FG_RED}✗ {text}{TerminalColors.RESET}"
     
     @staticmethod
-    def warning(text):
+    def warning(text: str) -> str:
         """
         Format text to indicate warning.
         
@@ -101,7 +101,7 @@ class TerminalColors:
         return f"{TerminalColors.FG_YELLOW}⚠ {text}{TerminalColors.RESET}"
     
     @staticmethod
-    def info(text):
+    def info(text: str) -> str:
         """
         Format text to display information.
         
@@ -114,7 +114,7 @@ class TerminalColors:
         return f"{TerminalColors.FG_CYAN}ℹ {text}{TerminalColors.RESET}"
     
     @staticmethod
-    def processing(text):
+    def processing(text: str) -> str:
         """
         Format text to indicate processing status.
         
@@ -127,7 +127,7 @@ class TerminalColors:
         return f"{TerminalColors.FG_MAGENTA}⋯ {text}{TerminalColors.RESET}"
     
     @staticmethod
-    def highlight_value(text):
+    def highlight_value(text: str) -> str:
         """
         Format text to highlight a value.
         

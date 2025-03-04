@@ -5,6 +5,7 @@ This module provides functionality for validating the structure and content
 of CSV file footers, which typically include summary information like
 total row count.
 """
+from typing import List, Iterator
 from src.utils.terminal_colors import TerminalColors
 
 
@@ -17,20 +18,20 @@ class FooterValidation:
     """
 
     @staticmethod
-    def validate_column1_pied_type_enregistrement(field):
+    def validate_column1_pied_type_enregistrement(field: str) -> bool:
         """
         Validates that the footer type field has value 99.
         
         Args:
-            field: The field value to validate
+            field (str): The field value to validate (as string)
             
         Returns:
-            bool: True if validation passes (value is 99), False otherwise
+            bool: True if validation passes (value is '99'), False otherwise
             
         Note:
             This field is mandatory and must have the value 99 to indicate a footer record.
         """
-        result = field == 99
+        result = field == '99'
         if result:
             print(TerminalColors.success(f"Footer type validation: {TerminalColors.highlight_value(field)} is valid"))
         else:
@@ -38,12 +39,12 @@ class FooterValidation:
         return result
 
     @staticmethod
-    def validate_column2_pied_nombre_lignes_du_fichier(field, line_num):
+    def validate_column2_pied_nombre_lignes_du_fichier(field: str, line_num: int) -> bool:
         """
         Validates the line count in the footer against actual file line count.
         
         Args:
-            field (int): The line count value from the footer
+            field (str): The line count value from the footer (as string)
             line_num (int): The actual number of lines in the file
             
         Returns:
@@ -54,9 +55,16 @@ class FooterValidation:
             The line count should equal the actual number of lines minus 2
             (to account for header and footer rows).
         """
+        # Convert field to integer for comparison
+        try:
+            field_value = int(field)
+        except ValueError:
+            print(TerminalColors.error(f"Line count validation: {TerminalColors.highlight_value(field)} is not a valid integer"))
+            return False
+            
         # Subtract 2 from line_num to exclude header and footer rows
         expected = line_num - 2
-        result = expected == field
+        result = expected == field_value
         
         if result:
             print(TerminalColors.success(f"Line count validation: {TerminalColors.highlight_value(field)} matches expected count ({expected})"))
@@ -65,7 +73,7 @@ class FooterValidation:
         return result
 
     @staticmethod
-    def validate_footer_structure(reader, fields, row_number):
+    def validate_footer_structure(reader: Iterator[List[str]], fields: List[str], row_number: int) -> None:
         """
         Validates the structure and position of the footer in the CSV file.
         
@@ -82,7 +90,7 @@ class FooterValidation:
             and performs footer-specific validations if it is.
         """
         # Inform that we're processing a potential footer row
-        print(TerminalColors.processing(f"Checking potential footer in row: {TerminalColors.highlight_value(row_number)}..."))
+        print(TerminalColors.processing(f"Checking potential footer in row: {TerminalColors.highlight_value(str(row_number))}..."))
         
         try:
             # Try to read the next line - if successful, this means the current row is not the footer
@@ -99,8 +107,8 @@ class FooterValidation:
             
             # Validate that the second field contains the correct line count
             print(TerminalColors.processing("Validating line count..."))
-            # Get the total number of lines from the reader
-            line_number = reader.line_num
+            # Use the row_number as the total line count since we don't have access to line_num from reader
+            line_number = row_number
             # Compare with the value in the footer
             FooterValidation.validate_column2_pied_nombre_lignes_du_fichier(
                 fields[1], line_number

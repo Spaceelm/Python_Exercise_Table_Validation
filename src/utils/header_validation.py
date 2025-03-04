@@ -5,7 +5,7 @@ This module provides functionality for validating the structure and content
 of CSV file headers according to specific format requirements.
 """
 # Import datetime module for date format validation
-from future.backports.datetime import datetime
+from datetime import datetime
 from src.utils.terminal_colors import TerminalColors
 
 
@@ -83,6 +83,8 @@ class HeaderValidation:
                     # Return False if the date string can't be parsed according to the format
                     print(TerminalColors.error(f"Header field 2 validation: {TerminalColors.highlight_value(field)} has invalid 'retour' date format (expected yyyymmddThhmmss)"))
                     return False
+            else:
+                return False
 
         @staticmethod
         def validate_varchar6_emetteur(field: str, aller_or_retour: str) -> bool:
@@ -118,6 +120,8 @@ class HeaderValidation:
                 else:
                     print(TerminalColors.error(f"Header field 3 validation: {TerminalColors.highlight_value(field)} is invalid for 'retour' format (expected 7 alphabetic characters)"))
                 return result
+            else:
+                return False
 
         @staticmethod
         def validate_str_plus_number_version(field: str) -> bool:
@@ -160,9 +164,9 @@ class HeaderValidation:
             # Check if the header has exactly 4 columns, print error message if not
             if len(header) != 4:
                 print(
-                    TerminalColors.error(f"Invalid number of columns in header: {TerminalColors.highlight_value(len(header))} (expected 4)")
+                    TerminalColors.error(f"Invalid number of columns in header: {TerminalColors.highlight_value(str(len(header)))} (expected 4)")
                 )
             else:
                 print(
-                    TerminalColors.success(f"Header column count: {TerminalColors.highlight_value(len(header))} is valid")
+                    TerminalColors.success(f"Header column count: {TerminalColors.highlight_value(str(len(header)))} is valid")
                 )
