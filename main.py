@@ -15,6 +15,7 @@ from typing import List, Callable, Iterator
 from src.utils.header_validation import HeaderValidation
 from src.utils.terminal_colors import TerminalColors
 from src.utils.error_collector import ErrorCollector
+from src.utils.valid_pm_validation import ValidPmValidation
 # Import validator lists from types
 from src.types.types import validators_pm, validators_p20, validators_pm10
 
@@ -36,12 +37,12 @@ def main():
     
     # Open and process the CSV file using a context manager to ensure proper file handling
     # The file is opened with UTF-8 encoding to properly handle special characters
-    with open(args.file, encoding="utf8") as file:
+    with open(args.file, encoding="utf8") as csv_file:
         # Create a CSV reader object with pipe ('|') as delimiter 
-        reader = csv.reader(file, delimiter="|")
+        csv_reader = csv.reader(csv_file, delimiter="|")
         
         # Read the first line of the CSV as the header
-        header = next(reader)
+        header = next(csv_reader)
         print(TerminalColors.info(f"Header: {TerminalColors.highlight_value('|'.join(header))}"))
         
         # Start header validation section
@@ -82,80 +83,79 @@ def main():
         # Start data rows validation section
         print(TerminalColors.section_header("VALIDATING LINES"))
         
-        # Define validation functions for different record types
         # Define expected column counts
         expected_pm_columns = 5  # Replace with your expected column count
         expected_p20_columns = 10  # Replace with your expected column count
         expected_pm10_columns = 5  # Replace with your expected column count
         
         # Create collector functions to capture errors instead of printing
-        def pm_structure_validator(fields: List[str], row_number: int, validators: List[Callable[[str], bool]]):
-            if len(fields) != expected_pm_columns:  # Replace with your expected column count
+        def validate_pm_structure(row_fields: List[str], line_number: int, field_validators: List[Callable[[str], bool]]):
+            if len(row_fields) != expected_pm_columns:
                 error_collector.add_error('content', 'structure', 'PM',
-                                         f"Invalid number of columns: {len(fields)} (expected {expected_pm_columns})",
-                                         row=row_number)
+                                         f"Invalid number of columns: {len(row_fields)} (expected {expected_pm_columns})",
+                                         row=line_number)
             
             # Validate each field
-            for i, (validator, field) in enumerate(zip(validators, fields)):
-                if not validator(field):
+            for i, (validator, field_value) in enumerate(zip(field_validators, row_fields)):
+                if not validator(field_value):
                     error_collector.add_error('content', 'format', f'PM_Column{i+1}',
-                                             f"Invalid value '{field}'. Validate rules for column",
-                                             row=row_number)
+                                             f"Invalid value '{field_value}'. Validate rules for column",
+                                             row=line_number)
         
-        def p20_structure_validator(fields: List[str], row_number: int, validators: List[Callable[[str], bool]]):
-            if len(fields) != expected_p20_columns:  # Replace with your expected column count
+        def validate_p20_structure(row_fields: List[str], line_number: int, field_validators: List[Callable[[str], bool]]):
+            if len(row_fields) != expected_p20_columns:
                 error_collector.add_error('content', 'structure', 'P_20',
-                                         f"Invalid number of columns: {len(fields)} (expected {expected_p20_columns})",
-                                         row=row_number)
+                                         f"Invalid number of columns: {len(row_fields)} (expected {expected_p20_columns})",
+                                         row=line_number)
             
             # Validate each field
-            for i, (validator, field) in enumerate(zip(validators, fields)):
-                if not validator(field):
+            for i, (validator, field_value) in enumerate(zip(field_validators, row_fields)):
+                if not validator(field_value):
                     error_collector.add_error('content', 'format', f'P20_Column{i+1}',
-                                             f"Invalid value '{field}'. Validate rules for column",
-                                             row=row_number)
+                                             f"Invalid value '{field_value}'. Validate rules for column",
+                                             row=line_number)
         
-        def pm10_structure_validator(fields: List[str], row_number: int, validators: List[Callable[[str], bool]]):
-            if len(fields) != expected_pm10_columns:  # Replace with your expected column count
+        def validate_pm10_structure(row_fields: List[str], line_number: int, field_validators: List[Callable[[str], bool]]):
+            if len(row_fields) != expected_pm10_columns:
                 error_collector.add_error('content', 'structure', 'PM_10',
-                                         f"Invalid number of columns: {len(fields)} (expected {expected_pm10_columns})",
-                                         row=row_number)
+                                         f"Invalid number of columns: {len(row_fields)} (expected {expected_pm10_columns})",
+                                         row=line_number)
             
             # Validate each field
-            for i, (validator, field) in enumerate(zip(validators, fields)):
-                if not validator(field):
+            for i, (validator, field_value) in enumerate(zip(field_validators, row_fields)):
+                if not validator(field_value):
                     error_collector.add_error('content', 'format', f'PM10_Column{i+1}',
-                                             f"Invalid value '{field}'. Validate rules for column",
-                                             row=row_number)
+                                             f"Invalid value '{field_value}'. Validate rules for column",
+                                             row=line_number)
         
         # Process each data row in the CSV file
-        for row_number, row in enumerate(reader, start=1):
+        for row_number, row in enumerate(csv_reader, start=1):
             # Strip whitespace from each field to avoid validation errors due to spacing
             fields = [field.strip() for field in row]
             
             # Route validation based on record type (first field of each row)
             if fields[0] == "PM":
                 # Validate PM (Personne Morale) record structure
-                pm_structure_validator(fields, row_number, validators_pm)
+                validate_pm_structure(fields, row_number, validators_pm)
             elif fields[0] == "P_20":
                 # Validate P_20 (Address) record structure
-                p20_structure_validator(fields, row_number, validators_p20)
+                validate_p20_structure(fields, row_number, validators_p20)
             elif fields[0] == "PM_10":
                 # Validate PM_10 (Business Activity) record structure
-                pm10_structure_validator(fields, row_number, validators_pm10)
+                validate_pm10_structure(fields, row_number, validators_pm10)
             else:
                 # If not a recognized record type, assume it's a footer and validate accordingly
                 # Modify footer validation to use error collector
-                def footer_validator(reader: Iterator[List[str]], fields: List[str], row_number: int):
+                def validate_footer(footer_fields: List[str], footer_row_number: int):
                     # Add your footer validation logic here
                     # Example:
                     expected_footer_columns = 5  # Define expected footer columns (adjust the value as needed)
-                    if len(fields) != expected_footer_columns:  # Replace with your expected column count
+                    if len(footer_fields) != expected_footer_columns:
                         error_collector.add_error('footer', 'structure', 'Footer',
-                                                f"Invalid number of columns: {len(fields)} (expected {expected_footer_columns})",
-                                                row=row_number)
+                                                f"Invalid number of columns: {len(footer_fields)} (expected {expected_footer_columns})",
+                                                row=footer_row_number)
                 
-                footer_validator(reader, fields, row_number)
+                validate_footer(fields, row_number)
         
         # End of data rows validation section
         print(TerminalColors.section_end())
@@ -163,36 +163,36 @@ def main():
         # Start global PM table validation section
         print(TerminalColors.section_header("VALIDATING GLOBAL PM TABLE"))
 
-        # Reuse the reader from previous steps for PM table validation
-        reader_aller_file = reader
+        # Reset file pointer to beginning for PM table validation
+        csv_file.seek(0)
+        pm_validation_reader = csv.reader(csv_file, delimiter="|")
+        # Skip header row that we already processed
+        next(pm_validation_reader)
         
         # Perform global validation of PM table by comparing with reference data
-        # Modify to use error collector
-        def pm_table_validator(reader_aller_file: Iterator[List[str]]):
-            # Add your PM table validation logic here
-            # Use error_collector.add_error() when validation fails
-            pass
+        def validate_pm_table(pm_reader: Iterator[List[str]]):
+            # Call the ValidPmValidation.import_pm_table method to 
+            # validate the PM table data against reference files
+            ValidPmValidation.import_pm_table(pm_reader)
+            # Any errors found by the import_pm_table method will be printed directly
         
-        pm_table_validator(reader_aller_file)
+        validate_pm_table(pm_validation_reader)
         
-        # End of global PM table validation section
+        # Generate appropriate output based on format argument
+        if args.format == 'terminal' or args.format == 'all':
+            error_collector.print_terminal_report()
+    
+        if args.format == 'html' or args.format == 'all':
+            html_path = error_collector.generate_html_report()
+            print(f"\nHTML report generated: {html_path}")
+    
+        if args.format == 'json' or args.format == 'all':
+            json_path = error_collector.export_json()
+            print(f"\nJSON export generated: {json_path}")
+    
+        # Final message indicating completion of the validation process
+        print(TerminalColors.success("Validation complete."))
         print(TerminalColors.section_end())
-
-    # Generate appropriate output based on format argument
-    if args.format == 'terminal' or args.format == 'all':
-        error_collector.print_terminal_report()
-    
-    if args.format == 'html' or args.format == 'all':
-        html_path = error_collector.generate_html_report()
-        print(f"\nHTML report generated: {html_path}")
-    
-    if args.format == 'json' or args.format == 'all':
-        json_path = error_collector.export_json()
-        print(f"\nJSON export generated: {json_path}")
-    
-    # Final message indicating completion of the validation process
-    print(TerminalColors.success("Validation complete."))
-    print(TerminalColors.section_end())
 
 if __name__ == "__main__":
     main()
