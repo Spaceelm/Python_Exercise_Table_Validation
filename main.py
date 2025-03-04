@@ -10,6 +10,8 @@ import os   # Import OS module for file path operations
 import sys  # Import SYS module for system-level operations
 import argparse  # Import for command line argument parsing
 from typing import List, Callable, Iterator
+from tqdm import tqdm  # Import tqdm for progress bars
+from src.utils.tqdm_config import custom_bar_format  # Import the custom bar format
 
 # Import validation modules from project structure
 from src.utils.header_validation import HeaderValidation
@@ -18,6 +20,9 @@ from src.utils.error_collector import ErrorCollector
 from src.utils.valid_pm_validation import ValidPmValidation
 # Import validator lists from types
 from src.types.types import validators_pm, validators_p20, validators_pm10
+
+# Configure tqdm monitor
+tqdm.monitor_interval = 0  # Disable monitor thread for better performance
 
 # Add the current directory to the system path to ensure imports work correctly
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
@@ -34,6 +39,10 @@ def main():
     
     # Initialize error collector
     error_collector = ErrorCollector()
+    
+    # Get the total line count for progress reporting
+    total_lines = sum(1 for _ in open(args.file, encoding="utf8"))
+    print(TerminalColors.info(f"Processing file with {TerminalColors.highlight_value(str(total_lines))} lines"))
     
     # Open and process the CSV file using a context manager to ensure proper file handling
     # The file is opened with UTF-8 encoding to properly handle special characters
@@ -83,6 +92,9 @@ def main():
         # Start data rows validation section
         print(TerminalColors.section_header("VALIDATING LINES"))
         
+        # Calculate number of data rows (total lines minus header)
+        data_row_count = total_lines - 1
+        
         # Define expected column counts
         expected_pm_columns = 5  # Replace with your expected column count
         expected_p20_columns = 10  # Replace with your expected column count
@@ -129,7 +141,12 @@ def main():
                                              row=line_number)
         
         # Process each data row in the CSV file
-        for row_number, row in enumerate(csv_reader, start=1):
+        for row_number, row in tqdm(enumerate(csv_reader, start=1), 
+                                  desc="Validating data rows", 
+                                  unit="rows",
+                                  total=data_row_count,
+                                  ncols=100,
+                                  bar_format=custom_bar_format):
             # Strip whitespace from each field to avoid validation errors due to spacing
             fields = [field.strip() for field in row]
             

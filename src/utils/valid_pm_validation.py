@@ -6,7 +6,9 @@ and correctness of PM data through extraction and comparison.
 """
 import csv  # Import CSV module for file operations
 from src.utils.terminal_colors import TerminalColors
+from src.utils.tqdm_config import custom_bar_format  # Import the custom bar format
 from typing import Dict, List, Iterator
+from tqdm import tqdm  # Import tqdm for progress bars
 
 
 class ValidPmValidation:
@@ -44,12 +46,15 @@ class ValidPmValidation:
             with open("data/filtered_csv.csv", "w", encoding="utf8") as new:
                 new_csv = csv.writer(new, delimiter=",", lineterminator="\n")
                 ok_count: int = 0
-                for pm_row in reader:
+                for pm_row in tqdm(reader, 
+                                  desc="Filtering reference data", 
+                                  unit="records",
+                                  ncols=100,
+                                  bar_format=custom_bar_format):
                     if pm_row[70] == "ACTIF" or pm_row[70] == "INACTIF":
                         ok_count += 1
                         new_csv.writerow(pm_row)
-                        print(f"\r{TerminalColors.processing(f'Filtered file size: {TerminalColors.highlight_value(str(ok_count))} lines.')}", end="")
-                print(TerminalColors.success("\nFiltering complete."))
+                print(TerminalColors.success(f"\nFiltering complete. {ok_count} lines processed."))
                 
         with open("data/filtered_csv.csv", encoding="utf8") as filtered_file:
             # Open the pre-filtered CSV file
@@ -68,16 +73,22 @@ class ValidPmValidation:
             
             # First pass: Process aller file data
             print(TerminalColors.processing("Reading PM records from input file..."))
+            pm_count: int = 0
+            pm_rows = []
             for aller_row in reader_aller_file:
-                # Process only PM type records
                 if aller_row[0] == "PM":
-                    pm_count += 1
-                    # Display running count of PM records found
-                    print(f"\r{TerminalColors.processing(f'PM count: {TerminalColors.highlight_value(str(pm_count))}')}", end="")
-                    # Store the row in dictionaries using the ID (second column) as key
-                    aller_dict[aller_row[1]] = aller_row
-                    aller_dict_for_inverted_check[aller_row[1]] = aller_row
-            print("")  # Print newline after PM count display
+                    pm_rows.append(aller_row)
+            
+            for aller_row in tqdm(pm_rows, 
+                                desc="Processing PM records", 
+                                unit="records",
+                                ncols=100,
+                                bar_format=custom_bar_format):
+                pm_count += 1
+                # Store the row in dictionaries using the ID (second column) as key
+                aller_dict[aller_row[1]] = aller_row
+                aller_dict_for_inverted_check[aller_row[1]] = aller_row
+            print(TerminalColors.success(f"Processed {pm_count} PM records."))
             
             # Second pass: Process filtered CSV data
             print(TerminalColors.processing("Loading reference data..."))
@@ -88,16 +99,12 @@ class ValidPmValidation:
             # First comparison: filtered_dict → aller_dict
             # This checks if each ID in filtered_dict exists in aller_dict
             print(TerminalColors.processing("Starting validation - checking reference IDs against input file..."))
-            for filtered_key in filtered_dict:
+            for filtered_key in tqdm(filtered_dict, 
+                                   desc="Forward validation", 
+                                   unit="IDs",
+                                   ncols=100,
+                                   bar_format=custom_bar_format):
                 row_count_filtered_csv += 1
-                
-                # Create status message showing progress
-                status_message = (
-                    f"\r{TerminalColors.processing(f'Matches: {TerminalColors.highlight_value(str(matches_count))} of {str(row_count_filtered_csv)} rows. ')}  "
-                    f"{TerminalColors.warning(f'Not found: {str(non_matches_count)} rows.')}  "
-                    f"{TerminalColors.info(f'Remaining: {str(len(filtered_dict))}')}"
-                )
-                print(status_message, end="\t")
                 
                 try:
                     # Try to find this key in the aller dictionary and remove it if found
@@ -130,16 +137,12 @@ class ValidPmValidation:
             row_count_aller_csv = 0
             print("\n" + TerminalColors.processing("Starting reverse validation - checking input IDs against reference file..."))
             
-            for aller_key in aller_dict_for_inverted_check:
+            for aller_key in tqdm(aller_dict_for_inverted_check, 
+                                desc="Reverse validation", 
+                                unit="IDs",
+                                ncols=100,
+                                bar_format=custom_bar_format):
                 row_count_aller_csv += 1
-                
-                # Create status message showing progress for inverted check
-                inverted_status_message = (
-                    f"\r{TerminalColors.processing(f'Matches: {TerminalColors.highlight_value(str(inverted_matches_count))} of {str(row_count_aller_csv)} rows. ')}  "
-                    f"{TerminalColors.warning(f'Not found: {str(inverted_non_matches_count)} rows.')}  "
-                    f"{TerminalColors.info(f'Remaining: {str(len(aller_dict_for_inverted_check))}')}"
-                )
-                print(inverted_status_message, end="\t")
                 
                 try:
                     # Try to find this key in the filtered dictionary and remove it if found
