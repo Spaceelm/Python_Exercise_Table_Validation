@@ -18,8 +18,14 @@ from src.utils.header_validation import HeaderValidation
 from src.utils.terminal_colors import TerminalColors
 from src.utils.error_collector import ErrorCollector
 from src.utils.valid_pm_validation import ValidPmValidation
+from src.utils.footer_validation import FooterValidation
+from src.utils.content_validation import ContentValidation
+from src.utils.retour_validation import RetourValidation  # Import the new RetourValidation class
 # Import validator lists from types
-from src.types.types import validators_pm, validators_p20, validators_pm10
+from src.types.types import (
+    validators_pm, validators_p20, validators_pm10,
+    validators_retour_pm, validators_retour_p20
+)
 
 # Configure tqdm monitor
 tqdm.monitor_interval = 0  # Disable monitor thread for better performance
@@ -35,6 +41,8 @@ def main():
                         help='Path to the CSV file to validate')
     parser.add_argument('--format', type=str, choices=['terminal', 'html', 'json', 'all'],
                         default='terminal', help='Output format for validation results')
+    parser.add_argument('--file-type', type=str, choices=['aller', 'retour'],
+                        default='aller', help='Type of file format (aller or retour)')
     args = parser.parse_args()
     
     # Initialize error collector
@@ -43,6 +51,7 @@ def main():
     # Get the total line count for progress reporting
     total_lines = sum(1 for _ in open(args.file, encoding="utf8"))
     print(TerminalColors.info(f"Processing file with {TerminalColors.highlight_value(str(total_lines))} lines"))
+    print(TerminalColors.info(f"File type: {TerminalColors.highlight_value(args.file_type)}"))
     
     # Open and process the CSV file using a context manager to ensure proper file handling
     # The file is opened with UTF-8 encoding to properly handle special characters
@@ -62,7 +71,6 @@ def main():
             error_collector.add_error('header', 'structure', 'columns', 
                                      f"Invalid number of columns: {len(header)} (expected specific number)")
         
-        # Create a reference to the header field validation class for cleaner code
         header_field_validation = HeaderValidation.HeaderFieldValidation
         
         # Validate each field of the header according to specific rules
@@ -71,13 +79,13 @@ def main():
             error_collector.add_error('header', 'format', 'record_type', 
                                     f"Invalid value {header[0]}")
         
-        # Field 1: Validate extraction date (must match 'aller' format: yyyymmddhhmmss)
-        if not header_field_validation.validate_date_extraction(header[1], "aller"):
+        # Field 1: Validate extraction date based on file type
+        if not header_field_validation.validate_date_extraction(header[1], args.file_type):
             error_collector.add_error('header', 'format', 'extraction_date', 
                                      f"Invalid value {header[1]}")
         
-        # Field 2: Validate emitter (must be 6 alphabetic characters for 'aller' format)
-        if not header_field_validation.validate_varchar6_emetteur(header[2], "aller"):
+        # Field 2: Validate emitter based on file type
+        if not header_field_validation.validate_varchar6_emetteur(header[2], args.file_type):
             error_collector.add_error('header', 'format', 'emitter', 
                                      f"Invalid value {header[2]}")
         
@@ -95,84 +103,47 @@ def main():
         # Calculate number of data rows (total lines minus header)
         data_row_count = total_lines - 1
         
-        # Define expected column counts
-        expected_pm_columns = 5  # Replace with your expected column count
-        expected_p20_columns = 10  # Replace with your expected column count
-        expected_pm10_columns = 5  # Replace with your expected column count
-        
-        # Create collector functions to capture errors instead of printing
-        def validate_pm_structure(row_fields: List[str], line_number: int, field_validators: List[Callable[[str], bool]]):
-            if len(row_fields) != expected_pm_columns:
-                error_collector.add_error('content', 'structure', 'PM',
-                                         f"Invalid number of columns: {len(row_fields)} (expected {expected_pm_columns})",
-                                         row=line_number)
-            
-            # Validate each field
-            for i, (validator, field_value) in enumerate(zip(field_validators, row_fields)):
-                if not validator(field_value):
-                    error_collector.add_error('content', 'format', f'PM_Column{i+1}',
-                                             f"Invalid value '{field_value}'. Validate rules for column",
-                                             row=line_number)
-        
-        def validate_p20_structure(row_fields: List[str], line_number: int, field_validators: List[Callable[[str], bool]]):
-            if len(row_fields) != expected_p20_columns:
-                error_collector.add_error('content', 'structure', 'P_20',
-                                         f"Invalid number of columns: {len(row_fields)} (expected {expected_p20_columns})",
-                                         row=line_number)
-            
-            # Validate each field
-            for i, (validator, field_value) in enumerate(zip(field_validators, row_fields)):
-                if not validator(field_value):
-                    error_collector.add_error('content', 'format', f'P20_Column{i+1}',
-                                             f"Invalid value '{field_value}'. Validate rules for column",
-                                             row=line_number)
-        
-        def validate_pm10_structure(row_fields: List[str], line_number: int, field_validators: List[Callable[[str], bool]]):
-            if len(row_fields) != expected_pm10_columns:
-                error_collector.add_error('content', 'structure', 'PM_10',
-                                         f"Invalid number of columns: {len(row_fields)} (expected {expected_pm10_columns})",
-                                         row=line_number)
-            
-            # Validate each field
-            for i, (validator, field_value) in enumerate(zip(field_validators, row_fields)):
-                if not validator(field_value):
-                    error_collector.add_error('content', 'format', f'PM10_Column{i+1}',
-                                             f"Invalid value '{field_value}'. Validate rules for column",
-                                             row=line_number)
-        
         # Process each data row in the CSV file
         for row_number, row in tqdm(enumerate(csv_reader, start=1), 
-                                  desc="Validating data rows", 
-                                  unit="rows",
-                                  total=data_row_count,
-                                  ncols=100,
-                                  bar_format=custom_bar_format):
+                                   desc="Validating data rows", 
+                                   unit="rows",
+                                   total=data_row_count,
+                                   ncols=100,
+                                   bar_format=custom_bar_format):
             # Strip whitespace from each field to avoid validation errors due to spacing
             fields = [field.strip() for field in row]
             
-            # Route validation based on record type (first field of each row)
-            if fields[0] == "PM":
-                # Validate PM (Personne Morale) record structure
-                validate_pm_structure(fields, row_number, validators_pm)
-            elif fields[0] == "P_20":
-                # Validate P_20 (Address) record structure
-                validate_p20_structure(fields, row_number, validators_p20)
-            elif fields[0] == "PM_10":
-                # Validate PM_10 (Business Activity) record structure
-                validate_pm10_structure(fields, row_number, validators_pm10)
-            else:
-                # If not a recognized record type, assume it's a footer and validate accordingly
-                # Modify footer validation to use error collector
-                def validate_footer(footer_fields: List[str], footer_row_number: int):
-                    # Add your footer validation logic here
-                    # Example:
-                    expected_footer_columns = 5  # Define expected footer columns (adjust the value as needed)
-                    if len(footer_fields) != expected_footer_columns:
-                        error_collector.add_error('footer', 'structure', 'Footer',
-                                                f"Invalid number of columns: {len(footer_fields)} (expected {expected_footer_columns})",
-                                                row=footer_row_number)
-                
-                validate_footer(fields, row_number)
+            # Route validation based on record type (first field of each row) and file type (aller or retour)
+            if args.file_type == 'aller':
+                if fields[0] == "PM":
+                    # Validate PM (Personne Morale) record structure for 'aller' file
+                    ContentValidation.PMValidation.validate_pm_structure(fields, row_number, validators_pm, error_collector)
+                elif fields[0] == "P_20":
+                    # Validate P_20 (Address) record structure for 'aller' file
+                    ContentValidation.P20Validation.validate_p_20_structure(fields, row_number, validators_p20, error_collector)
+                elif fields[0] == "PM_10":
+                    # Validate PM_10 (Business Activity) record structure for 'aller' file
+                    ContentValidation.PM10Validation.validate_pm_10_structure(fields, row_number, validators_pm10, error_collector)
+                else:
+                    # If not a recognized record type, assume it's a footer and validate accordingly
+                    FooterValidation.validate_footer_structure(csv_reader, fields, row_number, error_collector)
+            elif args.file_type == 'retour':
+                if fields[0] == "PM":
+                    # Use the specialized RetourValidation for PM 'retour' structure
+                    RetourValidation.PMRetourValidation.validate_pm_retour_structure(
+                        fields, row_number, validators_retour_pm, error_collector
+                    )
+                elif fields[0] == "P_20":
+                    # Use the specialized RetourValidation for P_20 'retour' structure
+                    RetourValidation.P20RetourValidation.validate_p20_retour_structure(
+                        fields, row_number, validators_retour_p20, error_collector
+                    )
+                elif fields[0] == "PM_10":
+                    # For retour file, PM_10 uses the same validation as aller for now
+                    ContentValidation.PM10Validation.validate_pm_10_structure(fields, row_number, validators_pm10, error_collector)
+                else:
+                    # If not a recognized record type, assume it's a footer and validate accordingly
+                    FooterValidation.validate_footer_structure(csv_reader, fields, row_number, error_collector)
         
         # End of data rows validation section
         print(TerminalColors.section_end())

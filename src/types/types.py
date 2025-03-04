@@ -60,3 +60,40 @@ validators_pm10 = [
     ContentValidation.PMValidation.validate_column4_network,  # Validate network code (length and character set)
     ContentValidation.PM10Validation.validate_column5_code_ape,  # Validate APE code (length <= 128)
 ]
+
+# List of validators for "retour" file format records
+# Each validator corresponds to a specific column in the "retour" file
+validators_retour_pm = [
+    ContentValidation.PMValidation.validate_column1_type_enregistrement,  # Validate record type (must be PM/P_20/PM_10)
+    ContentValidation.PMValidation.validate_column2_id_stable,  # Validate stable ID (length and alphanumeric)
+    ContentValidation.PMValidation.validate_column3_uuid,  # Validate UUID format (must be alphanumeric)
+    ContentValidation.PMValidation.validate_column4_network,  # Validate network code (length and character set)
+    ContentValidation.PMValidation.validate_column5_denomination_social,  # Validate company name (length <= 250)
+    ContentValidation.PMValidation.validate_column6_siren,  # Validate SIREN number (length <= 18)
+    ContentValidation.PMValidation.validate_column7_siret,  # Validate SIRET number (length <= 18)
+    ContentValidation.PMValidation.validate_column8_type_other_immatriculation,  # Validate other registration type (length <= 18)
+    ContentValidation.PMValidation.validate_column9_autre_immatriculation,  # Validate other registration number (length <= 128)
+    ContentValidation.PMValidation.validate_column10_identifiant_rna,  # Validate RNA identifier (length <= 10)
+    ContentValidation.PMValidation.validate_column11_autre_numero_association,  # Validate other association number (length <= 128)
+    ContentValidation.PMValidation.validate_column12_code_categorie_juridique,  # Validate legal category code (length <= 128)
+    ContentValidation.PMValidation.validate_column13_code_pays_enregistrement,  # Validate country code (ISO2 format)
+    ContentValidation.PMValidation.validate_column14_resultat_verification,  # Validate verification result (length <= 128)
+    # Retour PM specific fields would be added/modified here as needed
+]
+
+validators_retour_p20 = [
+    ContentValidation.PMValidation.validate_column1_type_enregistrement,  # Validate record type (must be PM/P_20/PM_10)
+    ContentValidation.PMValidation.validate_column2_id_stable,  # Validate stable ID (length and alphanumeric)
+    ContentValidation.PMValidation.validate_column3_uuid,  # Validate UUID format (must be alphanumeric)
+    ContentValidation.PMValidation.validate_column4_network,  # Validate network code (length and character set)
+    ContentValidation.P20Validation.validate_column5_l1_address,  # Validate address line 1 (length <= 128)
+    ContentValidation.P20Validation.validate_column6_l2_address,  # Validate address line 2 (length <= 128)
+    ContentValidation.P20Validation.validate_column7_l3_address,  # Validate address line 3 (length <= 128)
+    ContentValidation.P20Validation.validate_column8_l4_address,  # Validate address line 4 (length <= 128)
+    ContentValidation.P20Validation.validate_column9_l5_adresse,  # Validate address line 5 (length <= 128)
+    ContentValidation.P20Validation.validate_column10_l6_adresse,  # Validate address line 6 (length <= 128)
+    ContentValidation.P20Validation.validate_column11_code_postal,  # Validate postal code (length <= 128)
+    ContentValidation.P20Validation.validate_column12_commune,  # Validate city/town (length <= 128)
+    ContentValidation.P20Validation.validate_column13_state,  # Validate state/province (length <= 10)
+    # Retour P20 specific fields would be added/modified here as needed
+]

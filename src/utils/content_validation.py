@@ -5,8 +5,9 @@ This module provides functionality for validating the content of CSV files,
 focusing on the validation of individual data fields and row structures.
 """
 import csv
-from typing import List, Callable, Any
+from typing import List, Callable, Any, Optional
 from datetime import datetime
+from src.utils.error_collector import ErrorCollector
 
 
 def validate_code_pays_insee_iso2(country_code: str) -> bool:
@@ -73,7 +74,8 @@ class ContentValidation:
         def validate_pm_10_structure(
             fields: List[str], 
             row_number: int, 
-            validators_pm10: List[Callable[[str], bool]]
+            validators_pm10: List[Callable[[str], bool]],
+            error_collector: Optional[ErrorCollector] = None
         ) -> None:
             """
             Validate PM_10 record structure and field formats.
@@ -82,65 +84,46 @@ class ContentValidation:
                 fields: List of field values from the row
                 row_number: Row number for error reporting
                 validators_pm10: List of validator functions to apply
+                error_collector: Optional ErrorCollector instance to collect validation errors
                 
             Returns:
-                None. Validation errors are printed to console.
+                None. Validation errors are printed to console and/or added to error_collector.
             """
             # Proceed checking the number of columns
-            if len(fields) != 5:
-                print(
-                    f"Row {row_number}: "
-                    f"Invalid number of columns: {len(fields)} (expected 5)"
-                )
-            # Validate each field
-            for i, (validator, field_tuple) in enumerate(zip(validators_pm10, fields)):
-                if not validator(field_tuple):
-                    print(
-                        f"[PM_10] Row {row_number}, "
-                        f"Column{i + 1}: "
-                        f"Invalid value '{field_tuple}'. "
-                        f"Validate rules for column"
-                    )
-
-        @staticmethod
-        def validate_pm_10_structure_with_collector(
-            fields: List[str], 
-            row_number: int, 
-            validators_pm10: List[Callable[[str], bool]],
-            error_collector: Any
-        ) -> None:
-            """
-            Validate PM_10 record structure and field formats using error collector.
-            
-            Args:
-                fields: List of field values from the row
-                row_number: Row number for error reporting
-                validators_pm10: List of validator functions to apply
-                error_collector: ErrorCollector instance to collect validation errors
-                
-            Returns:
-                None. Validation errors are added to the error collector.
-            """
-            # Proceed checking the number of columns
-            if len(fields) != 5:
-                error_collector.add_error(
-                    'content', 
-                    'structure', 
-                    'PM_10',
-                    f"Invalid number of columns: {len(fields)} (expected 5)",
-                    row=row_number
-                )
-            
-            # Validate each field
-            for i, (validator, field_tuple) in enumerate(zip(validators_pm10, fields)):
-                if not validator(field_tuple):
+            expected_columns = 5
+            if len(fields) != expected_columns:
+                if error_collector:
                     error_collector.add_error(
                         'content', 
-                        'format', 
-                        f'PM_10_Column{i + 1}',
-                        f"Invalid value '{field_tuple}'. Validate rules for column",
+                        'structure', 
+                        'PM_10',
+                        f"Invalid number of columns: {len(fields)} (expected {expected_columns})",
                         row=row_number
                     )
+                else:
+                    print(
+                        f"Row {row_number}: "
+                        f"Invalid number of columns: {len(fields)} (expected {expected_columns})"
+                    )
+            
+            # Validate each field
+            for i, (validator, field_tuple) in enumerate(zip(validators_pm10, fields)):
+                if not validator(field_tuple):
+                    if error_collector:
+                        error_collector.add_error(
+                            'content', 
+                            'format', 
+                            f'PM_10_Column{i + 1}',
+                            f"Invalid value '{field_tuple}'. Validate rules for column",
+                            row=row_number
+                        )
+                    else:
+                        print(
+                            f"[PM_10] Row {row_number}, "
+                            f"Column{i + 1}: "
+                            f"Invalid value '{field_tuple}'. "
+                            f"Validate rules for column"
+                        )
 
     class P20Validation:
         """
@@ -314,7 +297,8 @@ class ContentValidation:
         def validate_p_20_structure(
             fields: List[str], 
             row_number: int, 
-            validators_p20: List[Callable[[str], bool]]
+            validators_p20: List[Callable[[str], bool]],
+            error_collector: Optional[ErrorCollector] = None
         ) -> None:
             """
             Validate P_20 record structure and field formats.
@@ -323,65 +307,45 @@ class ContentValidation:
                 fields: List of field values from the row
                 row_number: Row number for error reporting
                 validators_p20: List of validator functions to apply
+                error_collector: Optional ErrorCollector instance to collect validation errors
                 
             Returns:
-                None. Validation errors are printed to console.
+                None. Validation errors are printed to console and/or added to error_collector.
             """
-            # Proceed checking the number of columns
-            if len(fields) != 14:
-                print(
-                    f"Row {row_number}: "
-                    f"Invalid number of columns: {len(fields)} (expected 14)"
-                )
-            # Validate each field
-            for i, (validator, field) in enumerate(zip(validators_p20, fields)):
-                if not validator(field):
-                    print(
-                        f"[P_20] Row {row_number}, "
-                        f"Column{i + 1}: Invalid value '{field}'. "
-                        f"Validate rules for column"
-                    )
-
-        @staticmethod
-        def validate_p_20_structure_with_collector(
-            fields: List[str], 
-            row_number: int, 
-            validators_p20: List[Callable[[str], bool]],
-            error_collector: Any
-        ) -> None:
-            """
-            Validate P_20 record structure and field formats using error collector.
-            
-            Args:
-                fields: List of field values from the row
-                row_number: Row number for error reporting
-                validators_p20: List of validator functions to apply
-                error_collector: ErrorCollector instance to collect validation errors
-                
-            Returns:
-                None. Validation errors are added to the error collector.
-            """
-            # Check the number of columns (assuming 14 for P_20)
+            # Check the number of columns
             expected_columns = 14
             if len(fields) != expected_columns:
-                error_collector.add_error(
-                    'content', 
-                    'structure', 
-                    'P_20',
-                    f"Invalid number of columns: {len(fields)} (expected {expected_columns})",
-                    row=row_number
-                )
+                if error_collector:
+                    error_collector.add_error(
+                        'content', 
+                        'structure', 
+                        'P_20',
+                        f"Invalid number of columns: {len(fields)} (expected {expected_columns})",
+                        row=row_number
+                    )
+                else:
+                    print(
+                        f"Row {row_number}: "
+                        f"Invalid number of columns: {len(fields)} (expected {expected_columns})"
+                    )
             
             # Validate each field
             for i, (validator, field) in enumerate(zip(validators_p20, fields)):
                 if not validator(field):
-                    error_collector.add_error(
-                        'content', 
-                        'format', 
-                        f'P_20_Column{i + 1}',
-                        f"Invalid value '{field}'. Validate rules for column",
-                        row=row_number
-                    )
+                    if error_collector:
+                        error_collector.add_error(
+                            'content', 
+                            'format', 
+                            f'P_20_Column{i + 1}',
+                            f"Invalid value '{field}'. Validate rules for column",
+                            row=row_number
+                        )
+                    else:
+                        print(
+                            f"[P_20] Row {row_number}, "
+                            f"Column{i + 1}: Invalid value '{field}'. "
+                            f"Validate rules for column"
+                        )
 
     class PMValidation:
         """
@@ -671,7 +635,8 @@ class ContentValidation:
         def validate_pm_structure(
             fields: List[str], 
             row_number: int, 
-            validators_pm: List[Callable[[str], bool]]
+            validators_pm: List[Callable[[str], bool]],
+            error_collector: Optional[ErrorCollector] = None
         ) -> None:
             """
             Validate PM record structure and field formats.
@@ -680,59 +645,39 @@ class ContentValidation:
                 fields: List of field values from the row
                 row_number: Row number for error reporting
                 validators_pm: List of validator functions to apply
+                error_collector: Optional ErrorCollector instance to collect validation errors
                 
             Returns:
-                None. Validation errors are printed to console.
+                None. Validation errors are printed to console and/or added to error_collector.
             """
-            if len(fields) != 16:
-                print(
-                    f"Row {row_number}: Invalid number of columns: {len(fields)} (expected 16)"
-                )
-            # Validate each field
-            for i, (validator, field) in enumerate(zip(validators_pm, fields)):
-
-                if not validator(field):
-                    print(
-                        f"[PM] Row {row_number}, Column{i + 1}: Invalid value '{field}'. Validate rules for column"
-                    )
-
-        @staticmethod
-        def validate_pm_structure_with_collector(
-            fields: List[str], 
-            row_number: int, 
-            validators_pm: List[Callable[[str], bool]],
-            error_collector: Any
-        ) -> None:
-            """
-            Validate PM record structure and field formats using error collector.
-            
-            Args:
-                fields: List of field values from the row
-                row_number: Row number for error reporting
-                validators_pm: List of validator functions to apply
-                error_collector: ErrorCollector instance to collect validation errors
-                
-            Returns:
-                None. Validation errors are added to the error collector.
-            """
-            # Check the number of columns (assuming 16 for PM)
+            # Check the number of columns
             expected_columns = 16
             if len(fields) != expected_columns:
-                error_collector.add_error(
-                    'content', 
-                    'structure', 
-                    'PM',
-                    f"Invalid number of columns: {len(fields)} (expected {expected_columns})",
-                    row=row_number
-                )
+                if error_collector:
+                    error_collector.add_error(
+                        'content', 
+                        'structure', 
+                        'PM',
+                        f"Invalid number of columns: {len(fields)} (expected {expected_columns})",
+                        row=row_number
+                    )
+                else:
+                    print(
+                        f"Row {row_number}: Invalid number of columns: {len(fields)} (expected {expected_columns})"
+                    )
             
             # Validate each field
             for i, (validator, field) in enumerate(zip(validators_pm, fields)):
                 if not validator(field):
-                    error_collector.add_error(
-                        'content', 
-                        'format', 
-                        f'PM_Column{i + 1}',
-                        f"Invalid value '{field}'. Validate rules for column",
-                        row=row_number
-                    )
+                    if error_collector:
+                        error_collector.add_error(
+                            'content', 
+                            'format', 
+                            f'PM_Column{i + 1}',
+                            f"Invalid value '{field}'. Validate rules for column",
+                            row=row_number
+                        )
+                    else:
+                        print(
+                            f"[PM] Row {row_number}, Column{i + 1}: Invalid value '{field}'. Validate rules for column"
+                        )
