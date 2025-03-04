@@ -5,9 +5,8 @@ This module provides functionality for validating the content of CSV files,
 focusing on the validation of individual data fields and row structures.
 """
 import csv
-from typing import List, Callable, Any, Optional
-
-from future.backports.datetime import datetime
+from typing import List, Callable, Any
+from datetime import datetime
 
 
 def validate_code_pays_insee_iso2(country_code: str) -> bool:
@@ -640,6 +639,8 @@ class ContentValidation:
                     return False
             elif len(field) == 0:
                 return True
+            else:
+                return False
 
         @staticmethod
         def validate_column16_date_evolution_pm_chez_cardif(field: str) -> bool:
@@ -663,6 +664,8 @@ class ContentValidation:
                     return False
             elif len(field) == 0:
                 return True
+            else:
+                return False
 
         @staticmethod
         def validate_pm_structure(
