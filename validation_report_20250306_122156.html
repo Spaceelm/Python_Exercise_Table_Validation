@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>CSV Validation Error Report</title>
+    <style>
+        :root {
+            --primary-color: #2c3e50;
+            --secondary-color: #3498db;
+            --success-color: #27ae60;
+            --error-color: #e74c3c;
+            --warning-color: #f39c12;
+            --bg-light: #f9f9f9;
+            --bg-dark: #ecf0f1;
+        }
+        body {
+            font-family: 'Segoe UI', Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            line-height: 1.6;
+            color: var(--primary-color);
+            background-color: #f5f6fa;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background-color: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: var(--primary-color);
+            border-bottom: 3px solid var(--secondary-color);
+            padding-bottom: 10px;
+            margin-bottom: 30px;
+        }
+        .timestamp {
+            color: #666;
+            font-size: 0.9em;
+            margin-bottom: 20px;
+        }
+        .section {
+            margin: 30px 0;
+            padding: 20px;
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        }
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        .section-title {
+            color: var(--primary-color);
+            margin: 0;
+            font-size: 1.5em;
+        }
+        .error-count {
+            background-color: var(--error-color);
+            color: white;
+            padding: 5px 10px;
+            border-radius: 15px;
+            font-size: 0.9em;
+        }
+        .validation-rules {
+            background-color: var(--bg-light);
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+        .rule-category {
+            margin: 10px 0;
+            padding: 10px;
+            background-color: white;
+            border-radius: 5px;
+            border-left: 4px solid var(--secondary-color);
+        }
+        .error-card {
+            background-color: white;
+            border-left: 4px solid var(--error-color);
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 5px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        }
+        .error-message {
+            font-weight: 500;
+            color: var(--error-color);
+            margin-bottom: 8px;
+        }
+        .error-details {
+            font-size: 0.9em;
+            color: #666;
+        }
+        .error-locations {
+            background-color: var(--bg-light);
+            padding: 5px 10px;
+            border-radius: 4px;
+            margin-top: 8px;
+            font-family: monospace;
+        }
+        .collapsible {
+            background-color: var(--bg-light);
+            color: var(--primary-color);
+            cursor: pointer;
+            padding: 15px;
+            width: 100%;
+            border: none;
+            text-align: left;
+            outline: none;
+            font-size: 1em;
+            border-radius: 5px;
+            margin-top: 10px;
+            transition: background-color 0.3s;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .collapsible:after {
+            content: '\002B';
+            font-weight: bold;
+            float: right;
+            margin-left: 5px;
+        }
+        .active:after {
+            content: '\2212';
+        }
+        .active, .collapsible:hover {
+            background-color: var(--bg-dark);
+        }
+        .content {
+            padding: 0 18px;
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.2s ease-out;
+            background-color: white;
+            border-radius: 0 0 5px 5px;
+        }
+        .summary {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        .summary-card {
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        }
+        .no-errors {
+            color: var(--success-color);
+            font-weight: bold;
+            text-align: center;
+            padding: 20px;
+            background-color: #f0fff4;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+        @media (max-width: 768px) {
+            .container {
+                padding: 10px;
+            }
+            .summary {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>CSV Validation Error Report</h1>
+        <div class="timestamp">Generated on: 2025-03-06 12:21:56</div>
+<div class="summary">
+
+                <div class="summary-card">
+                    <h3>Total Errors</h3>
+                    <div class="error-count">10</div>
+                </div>
+            
+
+                            <div class="summary-card">
+                                <h3>HEADER</h3>
+                                <div class="error-count">2</div>
+                                <div class="error-details">
+                        
+<div>structure: 1</div>
+<div>format: 1</div>
+</div></div>
+
+                            <div class="summary-card">
+                                <h3>CONTENT</h3>
+                                <div class="error-count">4</div>
+                                <div class="error-details">
+                        
+<div>data_type: 2</div>
+<div>required: 1</div>
+<div>range: 1</div>
+</div></div>
+
+                            <div class="summary-card">
+                                <h3>FOOTER</h3>
+                                <div class="error-count">2</div>
+                                <div class="error-details">
+                        
+<div>checksum: 1</div>
+<div>structure: 1</div>
+</div></div>
+
+                            <div class="summary-card">
+                                <h3>PM VALIDATION</h3>
+                                <div class="error-count">2</div>
+                                <div class="error-details">
+                        
+<div>business_rules: 1</div>
+<div>consistency: 1</div>
+</div></div>
+</div>
+
+                <div class="section">
+                    <div class="section-header">
+                        <h2 class="section-title">Validation Rules</h2>
+                    </div>
+                    <div class="validation-rules">
+            
+
+                    <div class="rule-category">
+                        <h3>HEADER</h3>
+                        <ul>
+                
+<li><strong>structure:</strong> Header must contain all required columns in correct order</li>
+<li><strong>format:</strong> Header fields must follow naming conventions</li>
+</ul></div>
+
+                    <div class="rule-category">
+                        <h3>CONTENT</h3>
+                        <ul>
+                
+<li><strong>data_type:</strong> Field values must match expected data types</li>
+<li><strong>format:</strong> Content must follow specified format rules</li>
+<li><strong>required:</strong> Required fields must not be empty</li>
+<li><strong>range:</strong> Numeric values must be within valid ranges</li>
+</ul></div>
+
+                    <div class="rule-category">
+                        <h3>FOOTER</h3>
+                        <ul>
+                
+<li><strong>structure:</strong> Footer must contain required summary information</li>
+<li><strong>checksum:</strong> Footer checksums must match content</li>
+</ul></div>
+
+                    <div class="rule-category">
+                        <h3>PM VALIDATION</h3>
+                        <ul>
+                
+<li><strong>business_rules:</strong> Data must comply with PM-specific business rules</li>
+<li><strong>consistency:</strong> Data must be consistent across related fields</li>
+</ul></div>
+</div></div>
+
+                    <div class="section">
+                        <div class="section-header">
+                            <h2 class="section-title">HEADER</h2>
+                            <span class="error-count">2 errors</span>
+                        </div>
+                
+<button class="collapsible">structure <span class="error-count">1</span></button>
+<div class="content">
+
+                            <div class="field-errors">
+                                <h4>Column Order (1 errors):</h4>
+                        
+<div class="error-card">
+<div class="error-message">Required column 'Date' is missing</div>
+</div>
+</div>
+</div>
+<button class="collapsible">format <span class="error-count">1</span></button>
+<div class="content">
+
+                            <div class="field-errors">
+                                <h4>Column Names (1 errors):</h4>
+                        
+<div class="error-card">
+<div class="error-message">Column name 'customer_ID' should be 'Customer_ID'</div>
+</div>
+</div>
+</div>
+</div>
+
+                    <div class="section">
+                        <div class="section-header">
+                            <h2 class="section-title">CONTENT</h2>
+                            <span class="error-count">4 errors</span>
+                        </div>
+                
+<button class="collapsible">data_type <span class="error-count">2</span></button>
+<div class="content">
+
+                            <div class="field-errors">
+                                <h4>Amount (2 errors):</h4>
+                        
+<div class="error-card">
+<div class="error-message">Invalid numeric value 'abc'</div>
+<div class="error-locations">Rows: 5</div>
+</div>
+<div class="error-card">
+<div class="error-message">Invalid numeric value 'xyz'</div>
+<div class="error-locations">Rows: 8</div>
+</div>
+</div>
+</div>
+<button class="collapsible">required <span class="error-count">1</span></button>
+<div class="content">
+
+                            <div class="field-errors">
+                                <h4>Customer_ID (1 errors):</h4>
+                        
+<div class="error-card">
+<div class="error-message">Value cannot be empty</div>
+<div class="error-locations">Rows: 12</div>
+</div>
+</div>
+</div>
+<button class="collapsible">range <span class="error-count">1</span></button>
+<div class="content">
+
+                            <div class="field-errors">
+                                <h4>Amount (1 errors):</h4>
+                        
+<div class="error-card">
+<div class="error-message">Value must be positive</div>
+<div class="error-locations">Rows: 15</div>
+</div>
+</div>
+</div>
+</div>
+
+                    <div class="section">
+                        <div class="section-header">
+                            <h2 class="section-title">FOOTER</h2>
+                            <span class="error-count">2 errors</span>
+                        </div>
+                
+<button class="collapsible">checksum <span class="error-count">1</span></button>
+<div class="content">
+
+                            <div class="field-errors">
+                                <h4>Total (1 errors):</h4>
+                        
+<div class="error-card">
+<div class="error-message">Footer total doesn't match content sum</div>
+</div>
+</div>
+</div>
+<button class="collapsible">structure <span class="error-count">1</span></button>
+<div class="content">
+
+                            <div class="field-errors">
+                                <h4>Summary (1 errors):</h4>
+                        
+<div class="error-card">
+<div class="error-message">Missing required summary section</div>
+</div>
+</div>
+</div>
+</div>
+
+                    <div class="section">
+                        <div class="section-header">
+                            <h2 class="section-title">PM VALIDATION</h2>
+                            <span class="error-count">2 errors</span>
+                        </div>
+                
+<button class="collapsible">business_rules <span class="error-count">1</span></button>
+<div class="content">
+
+                            <div class="field-errors">
+                                <h4>Transaction_Type (1 errors):</h4>
+                        
+<div class="error-card">
+<div class="error-message">Invalid transaction type 'XYZ'</div>
+<div class="error-locations">Rows: 20</div>
+</div>
+</div>
+</div>
+<button class="collapsible">consistency <span class="error-count">1</span></button>
+<div class="content">
+
+                            <div class="field-errors">
+                                <h4>Amount (1 errors):</h4>
+                        
+<div class="error-card">
+<div class="error-message">Amount exceeds daily limit</div>
+<div class="error-locations">Rows: 25</div>
+</div>
+</div>
+</div>
+</div>
+
+        <script>
+            var coll = document.getElementsByClassName("collapsible");
+            for (var i = 0; i < coll.length; i++) {
+                coll[i].addEventListener("click", function() {
+                    this.classList.toggle("active");
+                    var content = this.nextElementSibling;
+                    if (content.style.maxHeight) {
+                        content.style.maxHeight = null;
+                    } else {
+                        content.style.maxHeight = content.scrollHeight + "px";
+                    }
+                });
+            }
+        </script>
+    </div>
+</body>
+</html>
