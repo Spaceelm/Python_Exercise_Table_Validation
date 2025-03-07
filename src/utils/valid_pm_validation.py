@@ -55,14 +55,27 @@ class ValidPmValidation:
             print(
                 TerminalColors.processing("Filtering and preparing reference data...")
             )
+            # First count the number of rows in the file for the progress bar
+            file.seek(0)  # Reset file pointer
+            # Skip header row again
+            next(reader)
+            # Count rows in the reference file
+            reference_rows = list(reader)
+            total_reference_rows = len(reference_rows)
+            
+            # Reset file pointer and skip header for actual processing
+            file.seek(0)
+            next(reader)
+            
             with open("data/filtered_csv.csv", "w", encoding="utf8") as new:
                 new_csv = csv.writer(new, lineterminator="\n")
                 ok_count: int = 0
                 for pm_row in tqdm(
-                        reader,
+                        reference_rows,
                         desc="Filtering reference data",
                         unit="records",
                         ncols=100,
+                        total=total_reference_rows,
                         bar_format=custom_bar_format,
                 ):
                     if pm_row[70] == "ACTIF" or pm_row[70] == "INACTIF":
@@ -100,12 +113,15 @@ class ValidPmValidation:
             for aller_row in reader_aller_file:
                 if aller_row[0] == "PM":
                     pm_rows.append(aller_row)
+            
+            total_pm_rows = len(pm_rows)
 
             for aller_row in tqdm(
                     pm_rows,
                     desc="Processing PM records",
                     unit="records",
                     ncols=100,
+                    total=total_pm_rows,
                     bar_format=custom_bar_format,
             ):
                 pm_count += 1
@@ -116,7 +132,8 @@ class ValidPmValidation:
 
             # Second pass: Process filtered CSV data
             print(TerminalColors.processing("Loading reference data..."))
-            for filtered_row in filtered_csv_reader:
+            filtered_rows = list(filtered_csv_reader)
+            for filtered_row in filtered_rows:
                 # Store filtered rows in dictionary using the ID (first column) as key
                 filtered_dict[filtered_row[0]] = filtered_row
 
@@ -127,11 +144,15 @@ class ValidPmValidation:
                     "Starting validation - checking reference IDs against input file..."
                 )
             )
+            # Get total count for the progress bar
+            total_filtered_keys = len(filtered_dict)
+            
             for filtered_key in tqdm(
-                    filtered_dict,
+                    filtered_dict.keys(),
                     desc="Forward validation",
                     unit="IDs",
                     ncols=100,
+                    total=total_filtered_keys,
                     bar_format=custom_bar_format,
             ):
                 row_count_filtered_csv += 1
@@ -182,11 +203,15 @@ class ValidPmValidation:
                 )
             )
 
+            # Get total count for the progress bar
+            total_aller_keys = len(aller_dict_for_inverted_check)
+            
             for aller_key in tqdm(
-                    aller_dict_for_inverted_check,
+                    aller_dict_for_inverted_check.keys(),
                     desc="Reverse validation",
                     unit="IDs",
                     ncols=100,
+                    total=total_aller_keys,
                     bar_format=custom_bar_format,
             ):
                 row_count_aller_csv += 1
