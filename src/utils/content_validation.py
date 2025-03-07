@@ -80,10 +80,17 @@ class ContentValidation:
                     self.pm_content_validator.validate_pm_structure(
                         fields, row_number, self.validators_pm, error_collector
                     )
+                    # Store current PM ID for P_20 association
+                    if len(fields) > 1:
+                        self.p20_content_validator.current_pm_id = fields[1]
                 elif fields[0] == "P_20":
                     # Validate P_20 (Address) record structure for 'aller' file
                     self.p20_content_validator.validate_p_20_structure(
                         fields, row_number, self.validators_p20, error_collector
+                    )
+                    # Validate P_20 against GD_Adresse_IP reference
+                    self.p20_content_validator.validate_gd_adresse_ip_reference(
+                        fields, row_number, error_collector=error_collector
                     )
                 elif fields[0] == "PM_10":
                     # Validate PM_10 (Business Activity) record structure for 'aller' file
@@ -116,6 +123,10 @@ class ContentValidation:
                     FooterValidation.validate_footer_structure(
                         csv_reader, fields, row_number, error_collector
                     )
+
+        # After processing all rows, check P_20 ordering
+        if args.file_type == "aller":
+            self.p20_content_validator.validate_p20_ordering(error_collector)
 
     def validate_code_pays_insee_iso2(self, country_code: str) -> bool:
         """

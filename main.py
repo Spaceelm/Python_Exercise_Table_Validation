@@ -43,31 +43,65 @@ def main():
     # Initialize teardown
     teardown = Teardown()
 
-    # Parse command line arguments
-    args = setup.argument_parser()
-    
-    # Get the total line count for progress reporting
-    total_lines = setup.line_counter(args)
-    
-    # Open and process the CSV file using a context manager to ensure proper file handling
-    # The file is opened with UTF-8 encoding to properly handle special characters
-    with open(args.file, encoding=setup.encoding_to_utf8) as csv_file:
-        # Create a CSV reader object with pipe ('|') as delimiter
-        csv_reader = csv.reader(csv_file, delimiter=setup.aller_file_default_delimeter)
-
-        # Read the first line of the CSV as the header
-        header = setup.get_header(csv_reader)
+    try:
+        # Parse command line arguments
+        args = setup.argument_parser()
         
-        # Start header validation section
-        header_validator.validate_header(header, args, error_collector)
+        # Fix file path if needed by checking if the file exists
+        file_path = args.file
+        if not os.path.exists(file_path):
+            # Try with base directory
+            base_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), args.file)
+            if os.path.exists(base_path):
+                file_path = base_path
+            else:
+                # Check if it's just in the 'data' folder without the 'data/' prefix
+                if '/' in args.file:
+                    _, filename = args.file.split('/', 1)
+                    data_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', filename)
+                    if os.path.exists(data_path):
+                        file_path = data_path
+        
+        # Display some debug information about the file path
+        print(TerminalColors.info(f"File path: {TerminalColors.highlight_value(file_path)}"))
+        
+        if not os.path.exists(file_path):
+            raise FileNotFoundError(f"Cannot find file: {file_path}")
+        
+        # Get the total line count for progress reporting
+        total_lines = setup.line_counter(args)
+        
+        # Open and process the CSV file using a context manager to ensure proper file handling
+        # The file is opened with UTF-8 encoding to properly handle special characters
+        with open(file_path, encoding=setup.encoding_to_utf8) as csv_file:
+            # Create a CSV reader object with pipe ('|') as delimiter
+            csv_reader = csv.reader(csv_file, delimiter=setup.aller_file_default_delimeter)
 
-        # Start data rows validation section
-        content_validator.content_validation(
-            total_lines, csv_reader, args, error_collector
-        )
+            # Read the first line of the CSV as the header
+            header = setup.get_header(csv_reader)
+            
+            # Start header validation section
+            header_validator.validate_header(header, args, error_collector)
 
-        # Start validation with RP data
-        rp_validator.rp_validation(csv_file)
+            # Start data rows validation section
+            content_validator.content_validation(
+                total_lines, csv_reader, args, error_collector
+            )
 
-        # Doing the Teardown and showing result output
-        teardown.generate_output(args, error_collector)
+            # Start validation with RP data
+            rp_validator.rp_validation(csv_file)
+
+            # Doing the Teardown and showing result output
+            teardown.generate_output(args, error_collector)
+    
+    except FileNotFoundError as e:
+        print(TerminalColors.error(f"File Error: {e}"))
+    except Exception as e:
+        print(TerminalColors.error(f"An error occurred: {e}"))
+        import traceback
+        print(TerminalColors.error(traceback.format_exc()))
+
+
+# Call the main function if this script is being run directly
+if __name__ == "__main__":
+    main()

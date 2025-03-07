@@ -9,6 +9,7 @@ import os
 from collections import defaultdict
 from datetime import datetime
 from typing import Dict, List, Optional, Union, DefaultDict
+from src.utils.terminal_colors import TerminalColors
 
 # Define type aliases to make the nested structure clearer
 ErrorInfo = Dict[str, Optional[Union[str, int]]]
@@ -111,10 +112,11 @@ class ErrorCollector:
     def print_terminal_report(self) -> None:
         """Print a formatted error report to the terminal."""
         if not self.has_errors:
-            print("No validation errors found!")
+            print(TerminalColors.success("No validation errors found!"))
             return
 
-        print(f"\n===== VALIDATION ERROR REPORT ({self.error_count} errors) =====\n")
+        print(TerminalColors.section_header(f" VALIDATION ERROR REPORT ({self.error_count} errors) "))
+        print()
 
         for section, type_errors in self.errors.items():
             section_count = sum(
@@ -123,14 +125,19 @@ class ErrorCollector:
                 for _, errors in error_type.items()
             )
 
-            print(f"\n== {section.upper()} ({section_count} errors) ==")
+            print(TerminalColors.section_header(f" {section.upper()} ({section_count} errors) "))
+            print()
 
             for error_type, field_errors in type_errors.items():
                 type_count = sum(len(errors) for _, errors in field_errors.items())
-                print(f"\n-- {error_type} ({type_count} errors) --")
+                rule_description = self.validation_rules.get(section, {}).get(error_type, "")
+                print(TerminalColors.warning(f"{error_type} ({type_count} errors)"))
+                if rule_description:
+                    print(TerminalColors.info(f"Rule: {rule_description}"))
+                print()
 
                 for field_name, errors in field_errors.items():
-                    print(f"\n{field_name} ({len(errors)} errors):")
+                    print(TerminalColors.highlight_value(f"{field_name} ({len(errors)} errors):"))
 
                     # Group errors by message to avoid repetition
                     grouped_errors: DefaultDict[str, List[int]] = defaultdict(list)
@@ -152,9 +159,13 @@ class ErrorCollector:
                             else:
                                 row_display = ", ".join(map(str, rows))
 
-                            print(f"  - {message} ({row_display})")
+                            print(TerminalColors.error(f"  - {message} ({row_display})"))
                         else:
-                            print(f"  - {message}")
+                            print(TerminalColors.error(f"  - {message}"))
+                    
+                    print()
+        
+        print(TerminalColors.section_end())
 
     def generate_html_report(self, filepath: Optional[str] = None) -> str:
         """
@@ -466,7 +477,6 @@ class ErrorCollector:
                                 )
 
                             html.append("</div>")  # Close error-card
-
                         html.append("</div>")  # Close field-errors
                     html.append("</div>")  # Close content
                 html.append("</div>")  # Close section
