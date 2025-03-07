@@ -36,25 +36,14 @@ class TerminalColors:
     BOLD = "\033[1m" if ANSI_ENABLED else ""
     UNDERLINE = "\033[4m" if ANSI_ENABLED else ""
 
-    # Foreground colors
-    FG_BLACK = "\033[30m" if ANSI_ENABLED else ""
+    # Foreground colors - reduced set
     FG_RED = "\033[31m" if ANSI_ENABLED else ""
-    FG_GREEN = "\033[32m" if ANSI_ENABLED else ""
-    FG_YELLOW = "\033[33m" if ANSI_ENABLED else ""
-    FG_BLUE = "\033[34m" if ANSI_ENABLED else ""
-    FG_MAGENTA = "\033[35m" if ANSI_ENABLED else ""
-    FG_CYAN = "\033[36m" if ANSI_ENABLED else ""
-    FG_WHITE = "\033[37m" if ANSI_ENABLED else ""
+    FG_GREEN = "\033[32m" if ANSI_ENABLED else ""  
+    FG_BLUE = "\033[34m" if ANSI_ENABLED else ""   # Used only for progress bars
+    FG_GRAY = "\033[90m" if ANSI_ENABLED else ""   # For less important info
 
-    # Background colors
-    BG_BLACK = "\033[40m" if ANSI_ENABLED else ""
-    BG_RED = "\033[41m" if ANSI_ENABLED else ""
-    BG_GREEN = "\033[42m" if ANSI_ENABLED else ""
-    BG_YELLOW = "\033[43m" if ANSI_ENABLED else ""
-    BG_BLUE = "\033[44m" if ANSI_ENABLED else ""
-    BG_MAGENTA = "\033[45m" if ANSI_ENABLED else ""
-    BG_CYAN = "\033[46m" if ANSI_ENABLED else ""
-    BG_WHITE = "\033[47m" if ANSI_ENABLED else ""
+    # Background colors - limited use
+    BG_GRAY = "\033[100m" if ANSI_ENABLED else ""  # For section headers
 
     @staticmethod
     def section_header(text: str) -> str:
@@ -65,10 +54,10 @@ class TerminalColors:
             text: The text to format
 
         Returns:
-            str: Formatted text with blue background and white text
+            str: Formatted text with gray background and white text
         """
         if TerminalColors.ANSI_ENABLED:
-            return f"{TerminalColors.BG_BLUE}{TerminalColors.FG_BLACK}{TerminalColors.BOLD} {text} {TerminalColors.RESET}"
+            return f"{TerminalColors.BG_GRAY}{TerminalColors.BOLD} {text} {TerminalColors.RESET}"
         else:
             return f"### {text} ###"
 
@@ -81,7 +70,7 @@ class TerminalColors:
             str: Formatted text to mark end of section
         """
         if TerminalColors.ANSI_ENABLED:
-            return f"{TerminalColors.BG_BLUE}{TerminalColors.FG_BLACK}{'─' * 60}{TerminalColors.RESET}"
+            return f"{TerminalColors.FG_GRAY}{'─' * 60}{TerminalColors.RESET}"
         else:
             return f"{'─' * 60}"
 
@@ -97,7 +86,7 @@ class TerminalColors:
             str: Formatted text with green color
         """
         if TerminalColors.ANSI_ENABLED:
-            return f"{TerminalColors.FG_GREEN}✓ {text}{TerminalColors.RESET}"
+            return f"{TerminalColors.FG_GREEN}✓ {TerminalColors.BOLD}{text}{TerminalColors.RESET}"
         else:
             return f"✓ {text}"
 
@@ -113,7 +102,7 @@ class TerminalColors:
             str: Formatted text with red color
         """
         if TerminalColors.ANSI_ENABLED:
-            return f"{TerminalColors.FG_RED}✗ {text}{TerminalColors.RESET}"
+            return f"{TerminalColors.FG_RED}✗ {TerminalColors.BOLD}{text}{TerminalColors.RESET}"
         else:
             return f"✗ {text}"
 
@@ -126,10 +115,10 @@ class TerminalColors:
             text: The text to format
 
         Returns:
-            str: Formatted text with yellow color
+            str: Formatted text with red color (less bold than error)
         """
         if TerminalColors.ANSI_ENABLED:
-            return f"{TerminalColors.FG_YELLOW}⚠ {text}{TerminalColors.RESET}"
+            return f"{TerminalColors.FG_RED}⚠ {text}{TerminalColors.RESET}"
         else:
             return f"⚠ {text}"
 
@@ -142,10 +131,10 @@ class TerminalColors:
             text: The text to format
 
         Returns:
-            str: Formatted text with cyan color
+            str: Formatted text with gray color for less emphasis
         """
         if TerminalColors.ANSI_ENABLED:
-            return f"{TerminalColors.FG_CYAN}ℹ {text}{TerminalColors.RESET}"
+            return f"{TerminalColors.FG_GRAY}ℹ {text}{TerminalColors.RESET}"
         else:
             return f"ℹ {text}"
 
@@ -158,10 +147,10 @@ class TerminalColors:
             text: The text to format
 
         Returns:
-            str: Formatted text with magenta color
+            str: Formatted text with gray color
         """
         if TerminalColors.ANSI_ENABLED:
-            return f"{TerminalColors.FG_MAGENTA}⋯ {text}{TerminalColors.RESET}"
+            return f"{TerminalColors.FG_GRAY}⋯ {text}{TerminalColors.RESET}"
         else:
             return f"⋯ {text}"
 
@@ -174,9 +163,9 @@ class TerminalColors:
             text: The text to format
 
         Returns:
-            str: Formatted text with yellow color and bold
+            str: Formatted text with bold
         """
         if TerminalColors.ANSI_ENABLED:
-            return f"{TerminalColors.FG_YELLOW}{TerminalColors.BOLD}{text}{TerminalColors.RESET}"
+            return f"{TerminalColors.BOLD}{text}{TerminalColors.RESET}"
         else:
             return f"[{text}]"

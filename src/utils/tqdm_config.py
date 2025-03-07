@@ -13,7 +13,7 @@ tqdm.monitor_interval = 0  # Disable monitor thread for better performance
 # Define a custom bar format to use with tqdm instances
 if TerminalColors.ANSI_ENABLED:
     custom_bar_format = "{l_bar}%s{bar}%s{r_bar}" % (
-        TerminalColors.FG_BLUE,
+        TerminalColors.FG_GRAY,
         TerminalColors.RESET,
     )
 else:
