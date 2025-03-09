@@ -148,7 +148,7 @@ class PMValidation:
                 )
             else:
                 print(
-                    f"Row {row_number}: Invalid number of columns: {len(fields)}"
+                    f"Row {row_number}: Invalid number of columns: {len(fields)}" 
                     f" (expected {self.expected_number_columns})"
                 )
 
@@ -243,9 +243,15 @@ class P20Validation:
         Validate P_20 records against reference data in GD_Adresse_IP.csv.
         
         Validates that P_20 values are valid according to conditions in GD_Adresse_IP.csv:
-        - Column A should be filled with a date
-        - Column B should be empty
-        - Column C should equal to int 2
+        - Column with index 100 should contain a date in format yyyymmddhhmmss (in reference file)
+        - Column with index 101 should be empty for "ouverte" addresses, or contain a date for "ferme" addresses
+        - Column 25 determines if the address is "fiscale" or "courier"
+        - For "fiscale" addresses: Column 87 should have value 2 to be considered "ouverte"
+        - For "courier" addresses: Column 87 should have value 1 to be considered "ouverte"
+        
+        The validation determines if an address is "ouverte" (valid) or "ferme" (closed) based on:
+        - "Ouverte": Column 101 is empty and type-specific conditions for column 87 are met
+        - "Ferme": Column 101 contains a date (closing date of the address)
         
         Args:
             fields: List of field values from the row
@@ -256,23 +262,19 @@ class P20Validation:
         Returns:
             bool: True if validation passes, False otherwise
         """
-        # Get the ID from the P_20 record (assuming column 2 has the ID that links to PM)
+        # Extract the PM ID from the P_20 record
         p20_pm_id = fields[1] if len(fields) > 1 else None
-        
-        # Skip validation if no ID is available
         if not p20_pm_id:
             if error_collector:
                 error_collector.add_error(
                     "content",
                     "reference",
                     "P_20",
-                    f"Missing PM ID reference in P_20 record",
+                    "Missing PM ID in P_20 record",
                     row=row_number,
                 )
             else:
-                print(
-                    f"[P_20] Row {row_number}: Missing PM ID reference in P_20 record"
-                )
+                print(f"[P_20] Row {row_number}: Missing PM ID in P_20 record")
             return False
             
         # Check if reference file exists
@@ -295,48 +297,73 @@ class P20Validation:
         if p20_pm_id not in self.pm_to_p20_mapping:
             self.pm_to_p20_mapping[p20_pm_id] = []
         
-        # Store the current row for order validation
-        # Assuming the date information is in one of the P_20 fields
-        # Adjust the index as needed to match the actual date field in your P_20 record
-        date_field_index = 3  # Example index, adjust based on actual data
-        date_value = fields[date_field_index] if len(fields) > date_field_index else None
-        
-        self.pm_to_p20_mapping[p20_pm_id].append({
-            'row_number': row_number,
-            'date': date_value,
-            'fields': fields
-        })
-        
-        # Validate against reference data
+        # Initialize variables to store information from reference file
         is_valid = False
+        address_status = "unknown"
+        reference_date = None
+        address_type = None
+        validation_value = None
+        
         try:
             with open(reference_file_path, 'r', encoding='utf-8') as ref_file:
                 csv_reader = csv.reader(ref_file)
                 for ref_row in csv_reader:
-                    # Check the validation conditions
-                    # 1. Column A should be filled with a date
-                    has_date_in_column_a = ref_row[0].strip() != ''
-                    try:
-                        # Try to parse the date to ensure it's valid
-                        datetime.strptime(ref_row[0], "%Y-%m-%d")  # Adjust format as needed
-                    except (ValueError, IndexError):
-                        has_date_in_column_a = False
-                    
-                    # 2. Column B should be empty
-                    is_column_b_empty = len(ref_row) <= 1 or ref_row[1].strip() == ''
-                    
-                    # 3. Column C should equal to int 2
-                    is_column_c_int_2 = False
-                    if len(ref_row) > 2:
-                        try:
-                            is_column_c_int_2 = int(ref_row[2].strip()) == 2
-                        except (ValueError, IndexError):
-                            is_column_c_int_2 = False
-                    
-                    # If all conditions are met, the record is valid
-                    if has_date_in_column_a and is_column_b_empty and is_column_c_int_2:
-                        is_valid = True
-                        break
+                    # Look for the matching ID in the reference file
+                    # Adjust this matching logic based on how IDs are stored in both files
+                    if len(ref_row) > 0 and ref_row[0].strip() == p20_pm_id:
+                        # 1. Check if column 100 has a date (reference file)
+                        date_column_index = 100
+                        has_date = False
+                        if len(ref_row) > date_column_index and ref_row[date_column_index].strip() != '':
+                            try:
+                                # Format is yyyymmddhhmmss
+                                reference_date = ref_row[date_column_index].strip()
+                                datetime.strptime(reference_date, "%Y%m%d%H%M%S")
+                                has_date = True
+                            except (ValueError, IndexError):
+                                has_date = False
+                        
+                        # 2. Check if column 101 is empty (for "ouverte" status)
+                        closing_date_index = 101
+                        is_column_101_empty = len(ref_row) <= closing_date_index or ref_row[closing_date_index].strip() == ''
+                        
+                        # 3. Determine address type from column 25
+                        address_type_index = 25
+                        address_type = "unknown"
+                        if len(ref_row) > address_type_index:
+                            address_type_value = ref_row[address_type_index].strip()
+                            if address_type_value == '1':
+                                address_type = "courier"
+                            else:
+                                address_type = "fiscale"
+                        
+                        # 4. Check column 87 value based on address type
+                        address_validation_index = 87
+                        has_valid_validation_value = False
+                        validation_value = None
+                        
+                        if len(ref_row) > address_validation_index:
+                            validation_value = ref_row[address_validation_index].strip()
+                            
+                            if address_type == "fiscale":
+                                # For fiscale addresses, column 87 should be 2
+                                has_valid_validation_value = validation_value == '2'
+                            elif address_type == "courier":
+                                # For courier addresses, column 87 should be 1
+                                has_valid_validation_value = validation_value == '1'
+                        
+                        # Determine address status
+                        if is_column_101_empty:
+                            address_status = "ouverte"
+                        else:
+                            address_status = "ferme"
+                            
+                        # Set validity based on conditions
+                        # For "ouverte" addresses: date exists, column 101 is empty, appropriate column 87 value
+                        if has_date and is_column_101_empty and has_valid_validation_value:
+                            is_valid = True
+                        
+                        break  # Found matching record, stop searching
         except Exception as e:
             if error_collector:
                 error_collector.add_error(
@@ -352,19 +379,29 @@ class P20Validation:
                 )
             return False
         
+        # Store the current row for order validation
+        # Use the date from the reference file
+        self.pm_to_p20_mapping[p20_pm_id].append({
+            'row_number': row_number,
+            'date': reference_date,
+            'fields': fields,
+            'status': address_status,
+            'address_type': address_type,
+            'validation_value': validation_value
+        })
+        
         if not is_valid:
+            error_message = f"P_20 record does not meet validation criteria. Status: {address_status}, Type: {address_type}"
             if error_collector:
                 error_collector.add_error(
                     "content",
                     "reference",
                     "P_20",
-                    f"P_20 record does not match reference data criteria in {reference_file_path}",
+                    error_message,
                     row=row_number,
                 )
             else:
-                print(
-                    f"[P_20] Row {row_number}: P_20 record does not match reference data criteria in {reference_file_path}"
-                )
+                print(f"[P_20] Row {row_number}: {error_message}")
         
         return is_valid
         
@@ -375,8 +412,8 @@ class P20Validation:
         """
         Validate that P_20 records for each PM are ordered by date.
         
-        This method should be called after all P_20 records have been processed
-        to check the ordering of P_20 records under each PM.
+        This method checks that "ouverte" P_20 addresses are ordered by date (yyyymmddhhmmss)
+        from the reference file. The date information is stored in column 100 of the reference file.
         
         Args:
             error_collector: Optional ErrorCollector instance to collect validation errors
@@ -384,66 +421,44 @@ class P20Validation:
         Returns:
             bool: True if all P_20 records are properly ordered, False otherwise
         """
-        all_valid = True
+        overall_valid = True
         
         for pm_id, p20_records in self.pm_to_p20_mapping.items():
-            if len(p20_records) <= 1:
-                continue  # No ordering to check if only one record
+            # Only validate ordering for "ouverte" addresses
+            ouverte_records = [rec for rec in p20_records if rec.get('status') == 'ouverte']
+            
+            if not ouverte_records:
+                continue
                 
-            # Sort the records by date
-            try:
-                # Convert string dates to datetime objects for proper comparison
-                for record in p20_records:
-                    if record['date']:
-                        try:
-                            # Adjust the date format as needed
-                            record['datetime'] = datetime.strptime(record['date'], "%Y-%m-%d")
-                        except ValueError:
-                            record['datetime'] = None
-                    else:
-                        record['datetime'] = None
+            # Sort records by date
+            sorted_records = sorted(
+                ouverte_records, 
+                key=lambda x: x.get('date', '') if x.get('date') else ''
+            )
+            
+            # Check if the current order matches the sorted order
+            is_ordered = sorted_records == ouverte_records
+            
+            if not is_ordered:
+                overall_valid = False
                 
-                # Sort records by date
-                sorted_records = sorted(
-                    [r for r in p20_records if r['datetime'] is not None],
-                    key=lambda x: x['datetime']
-                )
-                
-                # Check if the original order matches the sorted order
-                original_order = [r['row_number'] for r in p20_records if r['datetime'] is not None]
-                sorted_order = [r['row_number'] for r in sorted_records]
-                
-                if original_order != sorted_order:
-                    all_valid = False
-                    if error_collector:
-                        error_collector.add_error(
-                            "content",
-                            "ordering",
-                            "P_20",
-                            f"P_20 records for PM ID {pm_id} are not ordered by date",
-                            row=sorted_order[0],  # Report on the first record
-                        )
-                    else:
-                        print(
-                            f"[P_20] P_20 records for PM ID {pm_id} are not ordered by date. "
-                            f"Expected order: {sorted_order}, Actual order: {original_order}"
-                        )
-            except Exception as e:
-                all_valid = False
-                if error_collector:
-                    error_collector.add_error(
-                        "content",
-                        "ordering",
-                        "P_20",
-                        f"Error checking P_20 record ordering for PM ID {pm_id}: {str(e)}",
-                        row=p20_records[0]['row_number'] if p20_records else 0,
-                    )
-                else:
-                    print(
-                        f"[P_20] Error checking P_20 record ordering for PM ID {pm_id}: {str(e)}"
-                    )
+                # Find the first out-of-order record
+                for i, rec in enumerate(ouverte_records):
+                    if i > 0 and rec != sorted_records[i]:
+                        error_message = f"P_20 records for PM {pm_id} are not ordered by date. Row {rec['row_number']} is out of order."
+                        
+                        if error_collector:
+                            error_collector.add_error(
+                                "content", 
+                                "ordering", 
+                                "P_20", 
+                                error_message
+                            )
+                        else:
+                            print(f"[P_20] {error_message}")
+                        break
         
-        return all_valid
+        return overall_valid
         
     def validate_p_20_structure(
             self,

@@ -5,6 +5,7 @@ This module provides functionality for validating the content of CSV files,
 focusing on the validation of individual data fields and row structures.
 """
 import csv
+import os
 from datetime import datetime
 from typing import List, Callable, Optional
 
@@ -39,6 +40,9 @@ class ContentValidation:
         self.encoding_to_utf8 = setup.encoding_to_utf8
         # define file for validation of iso2 format for code pays
         self.file_insee = "data/v_pays_territoire_2024.csv"
+        # Get the base directory for reference files
+        self.base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+        self.reference_file_path = os.path.join(self.base_dir, "data", "GD_Adresse_IP.csv")
         # Initialize content validators using the imported validator classes
         self.pm_content_validator = PMValidation()
         self.p20_content_validator = P20Validation()
@@ -88,9 +92,9 @@ class ContentValidation:
                     self.p20_content_validator.validate_p_20_structure(
                         fields, row_number, self.validators_p20, error_collector
                     )
-                    # Validate P_20 against GD_Adresse_IP reference
+                    # Validate P_20 against GD_Adresse_IP reference with correct reference file path
                     self.p20_content_validator.validate_gd_adresse_ip_reference(
-                        fields, row_number, error_collector=error_collector
+                        fields, row_number, reference_file_path=self.reference_file_path, error_collector=error_collector
                     )
                 elif fields[0] == "PM_10":
                     # Validate PM_10 (Business Activity) record structure for 'aller' file
