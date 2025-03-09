@@ -123,10 +123,20 @@ class ContentValidation:
                         fields, row_number, self.validators_pm10, error_collector
                     )
                 else:
-                    # If not a recognized record type, assume it's a footer and validate accordingly
-                    FooterValidation.validate_footer_structure(
-                        csv_reader, fields, row_number, error_collector
+                    # Skip validation for any other record types in retour files
+                    # since we don't have validation logic for them yet
+                    if error_collector:
+                        error_collector.add_info(
+                            "content",
+                            "skipped",
+                            fields[0],
+                            f"Skipping validation for record type '{fields[0]}' in retour file (no validation logic implemented yet)",
+                            row=row_number
+                        )
+                    print(
+                        TerminalColors.info(f"[INFO] Row {row_number}: Skipping validation for record type '{fields[0]}' in retour file (no validation logic implemented yet)")
                     )
+                    print(TerminalColors.RESET)
 
         # After processing all rows, check P_20 ordering
         if args.file_type == "aller":
